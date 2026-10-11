@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+.DS_Store
+.cache/
+hf_cache/
+*.pt
+*.safetensors
+node_modules/
+ioi_grids.json
