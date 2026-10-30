@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where Explanations Disagree</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10); --other: #c3c2b7;
+  --early: #2a78d6; --middle: #eb6834; --late: #1baf7a;
+  --div-neg: #e34948; --div-mid: #f0efec; --div-pos: #2a78d6;
+  --ring: #0b0b0b; --marker-fill: #ffffff;
+  --q1: #cde2fb; --q2: #9ec5f4; --q3: #5598e7; --q4: #256abf; --q5: #0d366b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10); --other: #52514e;
+    --early: #3987e5; --middle: #d95926; --late: #199e70;
+    --div-neg: #e66767; --div-mid: #383835; --div-pos: #3987e5;
+    --ring: #f0efec; --marker-fill: #1a1a19;
+    --q1: #0d366b; --q2: #184f95; --q3: #2a78d6; --q4: #6da7ec; --q5: #cde2fb;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10); --other: #52514e;
+  --early: #3987e5; --middle: #d95926; --late: #199e70;
+  --div-neg: #e66767; --div-mid: #383835; --div-pos: #3987e5;
+  --ring: #f0efec; --marker-fill: #1a1a19;
+  --q1: #0d366b; --q2: #184f95; --q3: #2a78d6; --q4: #6da7ec; --q5: #cde2fb;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1320px; margin: 0 auto; padding: 24px 16px 48px; }
+h1 { font-size: 22px; margin: 0 0 4px; font-weight: 650; }
+h2 { font-size: 15px; margin: 0 0 2px; font-weight: 600; }
+.sub { color: var(--ink-2); margin: 0 0 16px; max-width: 900px; }
+.hint { color: var(--muted); font-size: 12.5px; margin: 0 0 12px; }
+.card { scroll-margin-top: 96px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+.controls { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: flex-end; position: sticky; top: 0; z-index: 5;
+  background: var(--page); padding: 10px 0 12px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.ctl { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-2); }
+.seg { display: inline-flex; border: 1px solid var(--axis); border-radius: 8px; overflow: hidden; }
+.seg button { font: inherit; font-size: 13px; color: var(--ink); background: var(--surface); border: 0; padding: 6px 12px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--axis); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+select { font: inherit; font-size: 13px; color: var(--ink); background: var(--surface); border: 1px solid var(--axis); border-radius: 8px; padding: 6px 8px; }
+.grids { display: flex; flex-wrap: wrap; gap: 20px 28px; }
+.gridbox h3 { font-size: 13px; font-weight: 600; margin: 0 0 6px; }
+.gridbox .legend { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .row { grid-template-columns: minmax(0, 1fr); } }
+.methodrow { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0 2px; }
+.methodrow select { max-width: 100%; }
+.gridbox .legend i { width: 14px; height: 10px; border-radius: 2px; display: inline-block; }
+.stat { font-size: 13px; color: var(--ink-2); margin: 4px 0 8px; font-variant-numeric: tabular-nums; }
+.stat b { color: var(--ink); }
+.keys { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--ink-2); margin-top: 6px; }
+.keys span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+svg text { fill: var(--muted); font-size: 11px; }
+.axis path, .axis line { stroke: var(--axis); }
+.gridline line { stroke: var(--grid); }
+.detail table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.detail th, .detail td { text-align: right; padding: 4px 6px; border-bottom: 1px solid var(--grid); }
+.detail th:first-child, .detail td:first-child { text-align: left; }
+.detail th { color: var(--muted); font-weight: 500; }
+.empty { color: var(--muted); }
+#tip { position: fixed; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px; font-size: 12.5px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); opacity: 0; max-width: 280px; z-index: 10; }
+#tip .muted { color: var(--ink-2); }
+details summary { cursor: pointer; font-weight: 600; }
+.tablewrap { overflow-x: auto; margin-top: 10px; }
+#tbl { border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; min-width: 760px; }
+#tbl th, #tbl td { padding: 4px 8px; border-bottom: 1px solid var(--grid); text-align: right; }
+#tbl th { cursor: pointer; color: var(--ink-2); font-weight: 600; position: sticky; top: 0; background: var(--surface); }
+#tbl td:nth-child(-n+2), #tbl th:nth-child(-n+2) { text-align: left; }
+#tbl tr.sel td { background: var(--div-mid); }
+#err { color: var(--div-neg); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Where Explanations Disagree</h1>
+  <p class="sub">GPT-2 small on indirect object identification (IOI). Four ways of scoring the 144 attention heads, compared with activation patching (the drop in logit(IO) − logit(S) when a head's output is replaced by its output on a corrupted prompt with three fresh names). <span id="nprompts"></span></p>
+  <p id="err"></p>
+
+  <div class="controls" role="toolbar" aria-label="Filters">
+    <div class="ctl">Name order
+      <div class="seg" id="cond">
+        <button data-v="all" aria-pressed="true">Pooled</button><button data-v="BABA" aria-pressed="false">BABA</button><button data-v="ABBA" aria-pressed="false">ABBA</button>
+      </div>
+    </div>
+    <div class="ctl">Grid color
+      <div class="seg" id="colormode">
+        <button data-v="rank" aria-pressed="true">Rank</button><button data-v="signed" aria-pressed="false">Signed value</button>
+      </div>
+    </div>
+    <div class="ctl"><label for="stage">Circuit heads</label>
+      <select id="stage">
+        <option value="all">Mark all circuit heads</option>
+        <option value="early">Early: duplicate, previous token, induction</option>
+        <option value="middle">Middle: S-inhibition</option>
+        <option value="late">Late: name movers, negative, backup</option>
+        <option value="none">Don't mark</option>
+      </select>
+    </div>
+  </div>
+
+  <section class="card">
+    <h2>Where does each method put importance?</h2>
+    <p class="hint">Layer × head grids. Rank mode colors each head by its rank of |score| within its method, in the five bands shown under each grid, so methods with different units stay comparable. "Best pair" is a head's highest attention across five IOI positions (final token → IO, S1, S2; S2 → S1 and the token after S1), so it uses knowledge of where the names are. Dots mark heads from the Wang et al. (2023) circuit. Click a cell to select a head everywhere.</p>
+    <div class="grids" id="grids"></div>
+  </section>
+
+  <div class="row">
+    <section class="card">
+      <h2>Which heads disagree with patching?</h2>
+      <div class="ctl methodrow">
+        <label for="method">Compare</label>
+        <select id="method"></select>
+        <span>against activation patching</span>
+      </div>
+      <p class="stat" id="stat"></p>
+      <div id="scatter"></div>
+      <div class="keys" id="keys"></div>
+    </section>
+    <section class="card detail" id="detail">
+      <h2 id="dtitle">Selected head</h2>
+      <p class="empty" id="dempty">Click a head in a grid or the scatter.</p>
+      <div id="dbody"></div>
+    </section>
+  </div>
+
+  <section class="card">
+    <details>
+      <summary>Table view (all 144 heads)</summary>
+      <p class="hint">Ranks are by |score|, 1 = most important. Click a column to sort, click a row to select the head.</p>
+      <div class="tablewrap"><table id="tbl"></table></div>
+    </details>
+  </section>
+</main>
+<div id="tip" role="tooltip"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script>
+const DATA_URL = "../results/ioi_v3_results_per_prompt.json";
+const L = 12, H = 12, NH = 144;
+const lab = i => `${Math.floor(i / H)}.${i % H}`;
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const ROLE_NAME = { name_movers: "name mover", negative_nm: "negative name mover", s_inhibition: "S-inhibition",
+  induction: "induction", duplicate: "duplicate token", backup_nm: "backup name mover", previous_token: "previous token" };
+const STAGE_OF = { duplicate: "early", previous_token: "early", induction: "early", s_inhibition: "middle",
+  name_movers: "late", negative_nm: "late", backup_nm: "late" };
+const STAGE_NAME = { early: "Early (duplicate, previous token, induction)", middle: "Middle (S-inhibition)", late: "Late (name movers, negative, backup)" };
+const PAIR_NAME = { "end>io": "final → IO", "end>s1": "final → S1", "end>s2": "final → S2", "s2>s1": "S2 → S1", "s2>s1+1": "S2 → token after S1" };
+const METHODS = [
+  { key: "attn_end", name: "Attention, final token → IO", short: "Attn (final→IO)" },
+  { key: "attn_best", name: "Attention, best query → key pair", short: "Attn (best pair)" },
+  { key: "dla", name: "Direct logit attribution", short: "DLA" },
+  { key: "attr", name: "Attribution patching", short: "Attr. patching" },
+  { key: "truth", name: "Activation patching (reference)", short: "Act. patching" },
+];
+const BANDS = [[1, 10, "top 10"], [11, 25, "11–25"], [26, 50, "26–50"], [51, 100, "51–100"], [101, 144, "101–144"]];
+const bandColor = r => css(`--q${5 - BANDS.findIndex(([a, b]) => r >= a && r <= b)}`);
+const seqRamp = () => d3.interpolateRgbBasis([1, 2, 3, 4, 5].map(k => css(`--q${k}`)));
+const state = { cond: "all", colormode: "rank", stage: "all", method: "attn_end", sel: null, sortKey: "truth_rank", sortAsc: true };
+let D, prompts, role = {}, stats;
+
+function absRank(v) {  // rank 1 = largest |v|
+  const idx = d3.range(v.length).sort((a, b) => Math.abs(v[b]) - Math.abs(v[a]) || a - b);
+  const r = new Array(v.length); idx.forEach((i, k) => r[i] = k + 1); return r;
+}
+function avgRank(v) {  // average ranks for Spearman (ties share the mean rank, as in scipy)
+  const idx = d3.range(v.length).sort((a, b) => v[a] - v[b]);
+  const r = new Array(v.length); let i = 0;
+  while (i < idx.length) { let j = i; while (j + 1 < idx.length && v[idx[j + 1]] === v[idx[i]]) j++;
+    for (let k = i; k <= j; k++) r[idx[k]] = (i + j) / 2 + 1; i = j + 1; }
+  return r;
+}
+function spearman(a, b) {
+  const ra = avgRank(a.map(Math.abs)), rb = avgRank(b.map(Math.abs));
+  const ma = d3.mean(ra), mb = d3.mean(rb); let n = 0, da = 0, db = 0;
+  for (let i = 0; i < ra.length; i++) { n += (ra[i] - ma) * (rb[i] - mb); da += (ra[i] - ma) ** 2; db += (rb[i] - mb) ** 2; }
+  return n / Math.sqrt(da * db);
+}
+const top10 = v => new Set(d3.range(v.length).sort((a, b) => Math.abs(v[b]) - Math.abs(v[a])).slice(0, 10));
+
+function compute(cond) {
+  const ps = cond === "all" ? prompts : prompts.filter(p => p.order === cond);
+  const n = ps.length, out = { n };
+  const pairs = D.pairs.length, A = Array.from({ length: NH }, () => new Array(pairs).fill(0));
+  for (const k of ["dla", "attr", "truth"]) out[k] = new Array(NH).fill(0);
+  for (const p of ps) for (let i = 0; i < NH; i++) {
+    for (let j = 0; j < pairs; j++) A[i][j] += p.attn[i][j] / n;
+    out.dla[i] += p.dla[i] / n; out.attr[i] += p.attr[i] / n; out.truth[i] += p.truth[i] / n;
+  }
+  out.pairs = A;
+  out.attn_end = A.map(r => r[0]);
+  out.attn_best = A.map(r => d3.max(r));
+  out.bestPair = A.map(r => D.pairs[d3.maxIndex(r)]);
+  out.rank = {}; for (const m of METHODS) out.rank[m.key] = absRank(out[m.key]);
+  out.rho = {}; out.top = {}; const tt = top10(out.truth);
+  for (const m of METHODS) if (m.key !== "truth") {
+    out.rho[m.key] = spearman(out[m.key], out.truth);
+    out.top[m.key] = [...top10(out[m.key])].filter(i => tt.has(i)).length;
+  }
+  return out;
+}
+
+const tip = d3.select("#tip");
+function showTip(ev, html) {
+  tip.html(html).style("opacity", 1);
+  const w = tip.node().offsetWidth, h = tip.node().offsetHeight;
+  let x = ev.clientX + 14, y = ev.clientY + 14;
+  if (x + w > innerWidth - 8) x = ev.clientX - w - 14;
+  if (y + h > innerHeight - 8) y = ev.clientY - h - 14;
+  tip.style("left", x + "px").style("top", y + "px");
+}
+const hideTip = () => tip.style("opacity", 0);
+const fmt = d3.format("+.3f"), fmt2 = d3.format(".2f");
+const roleText = i => role[i] ? `${ROLE_NAME[role[i]]} · ${STAGE_OF[role[i]]} stage` : "not in the IOI circuit";
+const marked = i => role[i] && (state.stage === "all" || STAGE_OF[role[i]] === state.stage);
+
+// ---------- T1 grids ----------
+const CELL = 22, GAP = 2, PADL = 26, PADT = 18;
+function drawGrids() {
+  const wrap = d3.select("#grids"); wrap.selectAll("*").remove();
+  const size = PADL + H * (CELL + GAP), sizeY = PADT + L * (CELL + GAP);
+  for (const m of METHODS) {
+    const box = wrap.append("div").attr("class", "gridbox");
+    box.append("h3").text(m.name);
+    const svg = box.append("svg").attr("width", size).attr("height", sizeY).attr("role", "img")
+      .attr("aria-label", `${m.name}, 12 by 12 grid of heads`);
+    svg.append("text").attr("x", PADL - 4).attr("y", 11).attr("text-anchor", "end").text("L\\H");
+    for (let h = 0; h < H; h += 1) svg.append("text").attr("x", PADL + h * (CELL + GAP) + CELL / 2).attr("y", 12).attr("text-anchor", "middle").text(h);
+    for (let l = 0; l < L; l += 1) svg.append("text").attr("x", PADL - 6).attr("y", PADT + l * (CELL + GAP) + CELL / 2 + 4).attr("text-anchor", "end").text(l);
+    const vals = stats[m.key], ranks = stats.rank[m.key];
+    let color;
+    if (state.colormode === "rank") {
+      color = i => bandColor(ranks[i]);
+    } else if (m.key.startsWith("attn")) {
+      const ramp = d3.scaleSequential(seqRamp()).domain([0, 1]);
+      color = i => ramp(vals[i]);
+    } else {
+      const mx = d3.max(vals, Math.abs);
+      const div = d3.scaleDiverging(d3.interpolateRgbBasis([css("--div-neg"), css("--div-mid"), css("--div-pos")])).domain([-mx, 0, mx]);
+      color = i => div(vals[i]);
+    }
+    const g = svg.append("g").attr("transform", `translate(${PADL},${PADT})`);
+    const cells = g.selectAll("g.c").data(d3.range(NH)).join("g").attr("class", "c")
+      .attr("transform", i => `translate(${(i % H) * (CELL + GAP)},${Math.floor(i / H) * (CELL + GAP)})`)
+      .style("cursor", "pointer")
+      .on("mousemove", (ev, i) => showTip(ev, `<b>Head ${lab(i)}</b> <span class="muted">${roleText(i)}</span><br>${m.name}: <b>${fmt(vals[i])}</b><br>rank ${ranks[i]} of 144` +
+        (m.key === "attn_best" ? `<br><span class="muted">best pair: ${PAIR_NAME[stats.bestPair[i]]}</span>` : "")))
+      .on("mouseleave", hideTip).on("click", (ev, i) => select(i));
+    cells.append("rect").attr("width", CELL).attr("height", CELL).attr("rx", 3).attr("fill", color);
+    cells.filter(marked).append("circle").attr("cx", CELL - 6).attr("cy", CELL - 6).attr("r", 3)
+      .attr("fill", "var(--marker-fill)").attr("stroke", "var(--ring)").attr("stroke-width", 1);
+    // two-tone selection ring: outer ink ring shows on pale cells' surroundings, inner surface ring shows on any cell
+    const selc = cells.filter(i => i === state.sel);
+    selc.append("rect").attr("x", -2).attr("y", -2).attr("width", CELL + 4).attr("height", CELL + 4)
+      .attr("rx", 5).attr("fill", "none").attr("stroke", "var(--ring)").attr("stroke-width", 2);
+    selc.append("rect").attr("x", 1).attr("y", 1).attr("width", CELL - 2).attr("height", CELL - 2)
+      .attr("rx", 2).attr("fill", "none").attr("stroke", "var(--surface)").attr("stroke-width", 2);
+    const lg = box.append("div").attr("class", "legend");
+    if (state.colormode === "rank") lg.html("rank " + BANDS.map(([a, b, t], k) => `<i style="background:var(--q${5 - k})"></i>${t}`).join(" "));
+    else if (m.key.startsWith("attn")) lg.html(`0 <svg width="80" height="8"><defs><linearGradient id="g${m.key}"><stop offset="0" stop-color="${css("--q1")}"/><stop offset="1" stop-color="${css("--q5")}"/></linearGradient></defs><rect width="80" height="8" rx="2" fill="url(#g${m.key})"/></svg> 1 (attention weight)`);
+    else { const mx = d3.max(vals, Math.abs);
+      lg.html(`${fmt2(-mx)} <svg width="80" height="8"><defs><linearGradient id="g${m.key}"><stop offset="0" stop-color="${css("--div-neg")}"/><stop offset="0.5" stop-color="${css("--div-mid")}"/><stop offset="1" stop-color="${css("--div-pos")}"/></linearGradient></defs><rect width="80" height="8" rx="2" fill="url(#g${m.key})"/></svg> +${fmt2(mx)}`); }
+  }
+}
+
+// ---------- T2 scatter ----------
+function drawScatter() {
+  const el = d3.select("#scatter"); el.selectAll("*").remove();
+  const W = Math.max(300, Math.min(560, el.node().clientWidth)), Hh = W, m = { l: 48, r: 12, t: 12, b: 42 };
+  const xr = stats.rank[state.method], yr = stats.rank.truth;
+  const x = d3.scaleLinear().domain([144.5, 0.5]).range([m.l, W - m.r]);
+  const y = d3.scaleLinear().domain([144.5, 0.5]).range([Hh - m.b, m.t]);
+  const svg = el.append("svg").attr("width", W).attr("height", Hh).attr("role", "img")
+    .attr("aria-label", "Scatter of method rank against patching rank");
+  const ticks = [144, 100, 50, 10, 1];
+  svg.append("g").attr("class", "gridline").selectAll("line").data(ticks).join("line")
+    .attr("x1", m.l).attr("x2", W - m.r).attr("y1", d => y(d)).attr("y2", d => y(d));
+  svg.append("g").attr("class", "gridline").selectAll("line").data(ticks).join("line")
+    .attr("y1", m.t).attr("y2", Hh - m.b).attr("x1", d => x(d)).attr("x2", d => x(d));
+  svg.append("line").attr("x1", x(144.5)).attr("y1", y(144.5)).attr("x2", x(0.5)).attr("y2", y(0.5))
+    .attr("stroke", "var(--axis)").attr("stroke-width", 1);
+  svg.append("g").attr("class", "axis").attr("transform", `translate(0,${Hh - m.b})`).call(d3.axisBottom(x).tickValues(ticks).tickSize(3));
+  svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).tickValues(ticks).tickSize(3));
+  const mname = METHODS.find(d => d.key === state.method).short;
+  svg.append("text").attr("x", (m.l + W - m.r) / 2).attr("y", Hh - 8).attr("text-anchor", "middle").text(`${mname} rank (1 = most important) →`);
+  svg.append("text").attr("transform", `translate(12,${(m.t + Hh - m.b) / 2}) rotate(-90)`).attr("text-anchor", "middle").text("Activation patching rank →");
+  svg.append("text").attr("x", m.l + 6).attr("y", m.t + 14).text("patching: important · method: misses it");
+  svg.append("text").attr("x", W - m.r - 6).attr("y", Hh - m.b - 8).attr("text-anchor", "end").text("method: important · patching: not");
+  const col = i => role[i] ? css(`--${STAGE_OF[role[i]]}`) : css("--other");
+  const order = d3.range(NH).sort((a, b) => (!!role[a] - !!role[b]) || (a === state.sel) - (b === state.sel));
+  const dimmed = i => state.stage !== "all" && state.stage !== "none" && !(role[i] && STAGE_OF[role[i]] === state.stage);
+  svg.append("g").selectAll("circle").data(order).join("circle")
+    .attr("cx", i => x(xr[i])).attr("cy", i => y(yr[i])).attr("r", i => i === state.sel ? 7 : role[i] ? 5 : 3.5)
+    .attr("fill", col).attr("opacity", i => dimmed(i) ? 0.25 : 1)
+    .attr("stroke", i => i === state.sel ? "var(--ring)" : "var(--surface)").attr("stroke-width", 2);
+  // direct labels: selected head plus the three circuit heads furthest from the diagonal
+  const far = d3.range(NH).filter(i => role[i]).sort((a, b) => Math.abs(xr[b] - yr[b]) - Math.abs(xr[a] - yr[a])).slice(0, 3);
+  const labels = [...new Set([...far, ...(state.sel != null ? [state.sel] : [])])];
+  svg.append("g").selectAll("text").data(labels).join("text")
+    .attr("x", i => x(xr[i]) + (xr[i] < 20 ? -9 : 9)).attr("y", i => y(yr[i]) + 4)
+    .attr("text-anchor", i => xr[i] < 20 ? "end" : "start")
+    .style("fill", "var(--ink)").style("font-weight", i => i === state.sel ? 600 : 400).text(lab);
+  const del = d3.Delaunay.from(d3.range(NH), i => x(xr[i]), i => y(yr[i]));
+  svg.append("rect").attr("x", m.l).attr("y", m.t).attr("width", W - m.l - m.r).attr("height", Hh - m.t - m.b)
+    .attr("fill", "transparent").style("cursor", "pointer")
+    .on("mousemove", ev => { const [px, py] = d3.pointer(ev); const i = del.find(px, py);
+      if (Math.hypot(x(xr[i]) - px, y(yr[i]) - py) > 24) return hideTip();
+      showTip(ev, `<b>Head ${lab(i)}</b> <span class="muted">${roleText(i)}</span><br>${mname} rank ${xr[i]} · patching rank ${yr[i]}`); })
+    .on("mouseleave", hideTip)
+    .on("click", ev => { const [px, py] = d3.pointer(ev); const i = del.find(px, py);
+      if (Math.hypot(x(xr[i]) - px, y(yr[i]) - py) <= 24) select(i); });
+  d3.select("#stat").html(`Spearman ρ on |score| = <b>${d3.format(".3f")(stats.rho[state.method])}</b> · top-10 overlap <b>${stats.top[state.method]}</b>/10 · ${stats.n} prompts`);
+  d3.select("#keys").html(["early", "middle", "late"].map(s => `<span><i class="sw" style="background:var(--${s})"></i>${STAGE_NAME[s]}</span>`).join("") +
+    `<span><i class="sw" style="background:var(--other)"></i>Other heads</span>`);
+}
+
+// ---------- detail panel ----------
+function drawDetail() {
+  const i = state.sel, body = d3.select("#dbody"); body.selectAll("*").remove();
+  d3.select("#dempty").style("display", i == null ? null : "none");
+  if (i == null) { d3.select("#dtitle").text("Selected head"); return; }
+  d3.select("#dtitle").text(`Head ${lab(i)}`);
+  body.append("p").attr("class", "hint").text(`${roleText(i)} · ${stats.n} prompts (${state.cond === "all" ? "pooled" : state.cond})`);
+  const t = body.append("table");
+  t.append("tr").html("<th>Method</th><th>Score</th><th>Rank</th>");
+  for (const m of METHODS) t.append("tr").html(`<td>${m.short}</td><td>${fmt(stats[m.key][i])}</td><td>${stats.rank[m.key][i]}</td>`);
+  body.append("h2").style("margin-top", "16px").text("Attention at each query → key pair");
+  const W = 300, rowH = 22, svg = body.append("svg").attr("width", W).attr("height", D.pairs.length * rowH + 4);
+  const x = d3.scaleLinear().domain([0, 1]).range([120, W - 40]);
+  D.pairs.forEach((p, j) => {
+    const v = stats.pairs[i][j], yy = j * rowH;
+    svg.append("text").attr("x", 114).attr("y", yy + 14).attr("text-anchor", "end").text(PAIR_NAME[p]);
+    svg.append("rect").attr("x", x(0)).attr("y", yy + 5).attr("width", x(1) - x(0)).attr("height", 12).attr("rx", 2).attr("fill", "var(--grid)");
+    svg.append("rect").attr("x", x(0)).attr("y", yy + 5).attr("width", Math.max(0, x(v) - x(0))).attr("height", 12).attr("rx", 2).attr("fill", "var(--early)");
+    svg.append("text").attr("x", x(1) + 6).attr("y", yy + 14).style("fill", "var(--ink)").text(fmt2(v));
+  });
+  body.append("h2").style("margin-top", "12px").text("Activation patching by name order");
+  const t2 = body.append("table"); t2.append("tr").html("<th>Order</th><th>Patching</th><th>Rank</th>");
+  for (const c of ["all", "BABA", "ABBA"]) { const s = byCond[c];
+    t2.append("tr").html(`<td>${c === "all" ? "Pooled" : c}</td><td>${fmt(s.truth[i])}</td><td>${s.rank.truth[i]}</td>`); }
+}
+
+// ---------- table view ----------
+function drawTable() {
+  const cols = [{ k: "head", n: "Head" }, { k: "role", n: "Role" },
+    ...METHODS.flatMap(m => [{ k: m.key + "_rank", n: m.short + " rank" }, { k: m.key + "_val", n: m.short }])];
+  const rows = d3.range(NH).map(i => { const r = { i, head: lab(i), role: role[i] ? ROLE_NAME[role[i]] : "" };
+    for (const m of METHODS) { r[m.key + "_rank"] = stats.rank[m.key][i]; r[m.key + "_val"] = stats[m.key][i]; } return r; });
+  const k = state.sortKey, dir = state.sortAsc ? 1 : -1;
+  rows.sort((a, b) => (k === "head" ? a.i - b.i : typeof a[k] === "string" ? a[k].localeCompare(b[k]) : a[k] - b[k]) * dir);
+  const t = d3.select("#tbl"); t.selectAll("*").remove();
+  t.append("thead").append("tr").selectAll("th").data(cols).join("th")
+    .text(c => c.n + (c.k === k ? (state.sortAsc ? " ▲" : " ▼") : ""))
+    .on("click", (ev, c) => { state.sortAsc = state.sortKey === c.k ? !state.sortAsc : true; state.sortKey = c.k; drawTable(); });
+  t.append("tbody").selectAll("tr").data(rows).join("tr").classed("sel", r => r.i === state.sel).style("cursor", "pointer")
+    .on("click", (ev, r) => select(r.i))
+    .selectAll("td").data(r => cols.map(c => typeof r[c.k] === "number" && c.k.endsWith("_val") ? fmt(r[c.k]) : r[c.k])).join("td").text(d => d);
+}
+
+let byCond = {};
+function select(i) { state.sel = state.sel === i ? null : i; render(); }
+function render() { stats = byCond[state.cond]; drawGrids(); drawScatter(); drawDetail(); drawTable(); }
+
+function seg(id, key) {
+  d3.selectAll(`#${id} button`).on("click", function () {
+    state[key] = this.dataset.v;
+    d3.selectAll(`#${id} button`).attr("aria-pressed", function () { return this.dataset.v === state[key]; });
+    render();
+  });
+}
+
+d3.json(DATA_URL).then(d => {
+  D = d; prompts = d.prompts;
+  for (const [r, hs] of Object.entries(d.roles)) for (const h of hs) { const [l, k] = h.split(".").map(Number); role[l * H + k] = r; }
+  role[2 * H + 2] = "previous_token"; role[4 * H + 11] = "previous_token";  // Wang et al. 2023, not in the pipeline's role list
+  for (const c of ["all", "BABA", "ABBA"]) byCond[c] = compute(c);
+  d3.select("#nprompts").text(`${prompts.length} prompts from ${new Set(prompts.map(p => p.tpl)).size} templates in two name orders.`);
+  d3.select("#method").selectAll("option").data(METHODS.filter(m => m.key !== "truth")).join("option")
+    .attr("value", m => m.key).text(m => m.name);
+  d3.select("#method").on("change", function () { state.method = this.value; render(); });
+  d3.select("#stage").on("change", function () { state.stage = this.value; render(); });
+  seg("cond", "cond"); seg("colormode", "colormode");
+  render();
+  addEventListener("resize", () => drawScatter());
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+}).catch(e => d3.select("#err").text(`Could not load ${DATA_URL}. Serve the repo root with "python3 -m http.server" and open /frontend/. (${e})`));
+</script>
+</body>
+</html>
