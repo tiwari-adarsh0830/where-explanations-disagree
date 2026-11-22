@@ -3,6 +3,8 @@
 Final project for DS-GA 3001 Visualization for Machine Learning (NYU, Fall 2026).
 Team 7: Sheetal Sood and Adarsh Tiwari.
 
+**Live tool:** https://tiwari-adarsh0830.github.io/where-explanations-disagree/ (GitHub Pages, same files as this repo; the greater-than task is at `frontend/?task=gt`).
+
 ## What we're doing
 
 Explanation methods for language models don't always agree. Attention maps, logit attribution and gradient methods can point at different attention heads for the same prediction. We want to build a visual analytics tool that shows where they disagree, and use activation patching (knocking out a head or a group of heads and checking what happens to the output) as a check on which explanation holds up.
@@ -20,6 +22,7 @@ We're starting with GPT-2 small on the indirect object identification (IOI) task
 | `results/` | Pipeline and analysis output (JSON, plus a per-head table from v2). Greater-than output is in `results/gt/` |
 | `frontend/` | The D3 tool (one HTML page, see `frontend/README.md`) |
 | `docs/` | Links to our planning docs |
+| `index.html`, `.nojekyll` | Let GitHub Pages serve the repo as the live tool: the root page forwards to `frontend/` |
 
 In `pipeline/`, `ioi_check_v3.py` is the current pipeline. It's the same as v2 (120 prompts from the paper's templates) but it keeps every prompt's scores, labels each prompt with its template and name order, and records attention at five query/key positions instead of one. `analysis_v4.py` reads that output plus `attn_scores.json` and produces every number the D3 page and the paper use: agreement with patching for each method with bootstrap intervals, attention at six positions (raw and value-weighted), the attribution patching error analysis, the group knockouts, and the per-order and per-template breakdowns. `patching_variants.py` reruns single-head patching and the group knockouts under five settings (noising vs denoising, three kinds of corruption, all positions vs the final token only) on the same 120 prompts, and `analysis_variants.py` compares them. `analysis_v3.py` is the earlier version behind our Nov 3 update (attention at five positions). `archive/ioi_check_v2.py` produced the numbers in our proposal and `archive/ioi_smoke_test_v1.py` was our first rough try. We kept both for reference.
 

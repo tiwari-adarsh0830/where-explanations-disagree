@@ -4,6 +4,8 @@ The D3 tool. It's one HTML page (`index.html`) that reads `../results/ioi_v3_res
 
 It covers two tasks. The Task switch at the top (or `?task=gt` in the address) loads the greater-than data from `../results/gt/` instead, and every view relabels itself: start years instead of templates, the year heads from Hanna et al. instead of the IOI circuit, and no name-order filter. Switching reloads the page.
 
+The live version is on GitHub Pages: https://tiwari-adarsh0830.github.io/where-explanations-disagree/ (it forwards to this folder).
+
 To run it, serve the repo root and open the frontend folder:
 
 ```
