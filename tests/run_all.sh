@@ -10,7 +10,7 @@ SERVER=$!
 trap 'kill $SERVER 2>/dev/null' EXIT
 sleep 1
 fail=0
-for t in t3 t4 t5 t6 task sticky map v2 keys target axe; do
+for t in t3 t4 t5 t6 task sticky map v2 keys target svg axe; do
   out=$(python3 "tests/test_$t.py" 2>&1); code=$?
   bad=$(printf '%s\n' "$out" | grep -E "errors: \[.+\]|mismatches: [1-9]|overflow[^:]*: [1-9]|: [1-9][0-9]* rule\(s\) violated|Traceback")
   if [ $code -ne 0 ] || [ -n "$bad" ]; then

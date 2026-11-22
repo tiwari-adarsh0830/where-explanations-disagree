@@ -50,6 +50,14 @@ h2 { font-size: 15px; margin: 0 0 2px; font-weight: 600; }
 .ctl[hidden] { display: none; }
 .t6controls { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 10px; }
 .why { width: 100%; border-collapse: collapse; font-size: 13px; }
+#whybody { overflow-x: auto; }
+@media (max-width: 600px) {
+  .why, .why tbody, .why tr, .why td { display: block; width: auto; }
+  .why tr:first-child { display: none; }
+  .why tr { border-bottom: 1px solid var(--border); padding: 8px 0; }
+  .why tr td { border: 0; padding: 2px 0; }
+  .why td:nth-child(2)::before { content: "Assumes: "; color: var(--muted); }
+}
 .why th { text-align: left; color: var(--muted); font-weight: 500; font-size: 12px; padding: 4px 8px 6px 0; border-bottom: 1px solid var(--border); }
 .why td { padding: 9px 8px 9px 0; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--ink-2); }
 .why td.m { color: var(--ink); font-weight: 600; white-space: nowrap; }
@@ -122,6 +130,10 @@ svg text { fill: var(--muted); font-size: 11px; }
 .detail th:first-child, .detail td:first-child { text-align: left; }
 .detail th { color: var(--muted); font-weight: 500; }
 .empty { color: var(--muted); }
+.card { position: relative; }
+.exporting :is(.why a, h2, .hint, .t4note, details, .empty, button, select, input, label, .seg, .ctl, .t3controls, .t6controls, .methodrow, .svgbtn) { display: none !important; }
+.svgbtn { position: absolute; top: 12px; right: 12px; font-size: 11.5px; padding: 2px 8px; color: var(--ink-2); }
+.card > h2 { padding-right: 84px; }
 #tip { position: fixed; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--border);
   border-radius: 8px; padding: 8px 10px; font-size: 12.5px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); opacity: 0; max-width: 280px; z-index: 10; }
 #tip .muted { color: var(--ink-2); }
@@ -1033,7 +1045,7 @@ function drawWhy() {
       : !dis && br ? "The assumption breaks, but the ranks still agree here, so the agreement is not evidence that this method reads the head correctly." : "";
     return { c, rM, dis, v, text: checkText(c, i, G) + (verdict ? " " + verdict : "") };
   });
-  body.append("p").attr("class", "hint").html(`<b style="color:var(--ink)">Head ${lab(i)}</b> · ${roleText(i)} · patching rank <b style="color:var(--ink)">${rP[i]}</b>` +
+  body.append("p").attr("class", "stat").html(`<b style="color:var(--ink)">Head ${lab(i)}</b> · ${roleText(i)} · patching rank <b style="color:var(--ink)">${rP[i]}</b>` +
     (DG.rank_ci && state.cond === "all" ? ` (95% interval ${DG.rank_ci.full[0][i]}–${DG.rank_ci.full[1][i]} over resampled prompts)` : "") + ` · effect ${f(G.effects.full[i])}`);
   const t = body.append("table").attr("class", "why");
   t.append("tr").html("<th>Method</th><th>Assumption</th><th>Check</th><th>What the check shows</th>");
@@ -1623,6 +1635,117 @@ function showTour(k) {
   applyState(s.st); const el = document.getElementById(s.go); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 let lastCond = state.cond;
+// ---- Figure export: each card as a standalone SVG (light theme, charts + legends + key numbers; titles, hints, notes and controls left out for the paper caption) ----
+const EXPORT_SKIP = ".why a, h2, .hint, .t4note, details, .empty, button, select, input, label, .seg, .ctl, .t3controls, .t6controls, .methodrow, #tip, .svgbtn";
+function exportCard(card) {
+  const root = document.documentElement, oldTheme = root.getAttribute("data-theme");
+  root.setAttribute("data-theme", "light"); card.classList.add("exporting"); render();   // redraw so the charts take the width left once controls and prose are hidden
+  try {
+    const box = card.getBoundingClientRect(), NS = "http://www.w3.org/2000/svg";
+    const W = Math.ceil(box.width), Hh = Math.ceil(card.scrollHeight);
+    const out = document.createElementNS(NS, "svg");
+    out.setAttribute("xmlns", NS); out.setAttribute("width", W); out.setAttribute("height", Hh); out.setAttribute("viewBox", `0 0 ${W} ${Hh}`);
+    const el = (tag, attrs, parent = out) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); parent.appendChild(e); return e; };
+    const title = card.querySelector("h2"); el("title", {}).textContent = title ? title.textContent : card.id;
+    el("desc", {}).textContent = `Where Explanations Disagree (${TASK_KEY === "gt" ? "greater-than" : "IOI"}). State: ${location.href}`;
+    const csRoot = getComputedStyle(card);
+    el("rect", { x: 0, y: 0, width: W, height: Hh, fill: csRoot.backgroundColor });
+    const ox = box.left, oy = box.top - card.scrollTop;
+    const visible = n => { const e = n.nodeType === 1 ? n : n.parentElement; if (!e || e.closest(EXPORT_SKIP)) return false;
+      if (e.closest("svg") && !(n.nodeType === 1 && n.tagName.toLowerCase() === "svg")) return false;
+      for (let a = e; a && a !== card; a = a.parentElement) { const c = getComputedStyle(a); if (c.display === "none" || c.visibility === "hidden" || a.hidden) return false; }
+      return e.getClientRects().length > 0; };
+    const alpha = c => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return 0; const p = m[1].split(/[ ,\/]+/).filter(Boolean); return p.length > 3 ? +p[3] : 1; };
+    const boxes = el("g", { id: "boxes" }), charts = el("g", { id: "charts" }), texts = el("g", { id: "text" });
+    // 1. backgrounds, borders and outlines of HTML elements (swatches, bars, badges, table rules)
+    for (const e of card.querySelectorAll("*")) {
+      if (e.closest("svg") || !visible(e)) continue;
+      const c = getComputedStyle(e), r = e.getBoundingClientRect(); if (r.width < 0.5 || r.height < 0.5) continue;
+      const x = r.left - ox, y = r.top - oy, rx = parseFloat(c.borderTopLeftRadius) || 0;
+      if (alpha(c.backgroundColor) > 0) el("rect", { x, y, width: r.width, height: r.height, rx, fill: c.backgroundColor }, boxes);
+      const sides = ["Top", "Right", "Bottom", "Left"].map(sd => ({ w: parseFloat(c[`border${sd}Width`]) || 0, col: c[`border${sd}Color`], st: c[`border${sd}Style`] }));
+      const on = sides.map(b => b.w > 0 && b.st !== "none" && alpha(b.col) > 0);
+      if (on.every(Boolean) && sides.every(b => b.w === sides[0].w && b.col === sides[0].col)) {
+        const w = sides[0].w; el("rect", { x: x + w / 2, y: y + w / 2, width: r.width - w, height: r.height - w, rx, fill: "none", stroke: sides[0].col, "stroke-width": w }, boxes);
+      } else {
+        const L = [[x, y, x + r.width, y], [x + r.width, y, x + r.width, y + r.height], [x, y + r.height, x + r.width, y + r.height], [x, y, x, y + r.height]];
+        on.forEach((o, k) => { if (o) { const [x1, y1, x2, y2] = L[k], h = sides[k].w / 2, dx = k % 2 ? (k === 1 ? -h : h) : 0, dy = k % 2 ? 0 : (k === 0 ? h : -h);
+          el("line", { x1: x1 + dx, y1: y1 + dy, x2: x2 + dx, y2: y2 + dy, stroke: sides[k].col, "stroke-width": sides[k].w }, boxes); } });
+      }
+      const ow = parseFloat(c.outlineWidth) || 0;
+      if (ow > 0 && c.outlineStyle !== "none" && alpha(c.outlineColor) > 0) { const off = parseFloat(c.outlineOffset) || 0, g = off + ow / 2;
+        el("rect", { x: x - g, y: y - g, width: r.width + 2 * g, height: r.height + 2 * g, fill: "none", stroke: c.outlineColor, "stroke-width": ow }, boxes); }
+    }
+    // 2. the D3 charts, with computed styles written onto every element so the file needs no stylesheet
+    const PROPS = ["fill", "stroke", "stroke-width", "stroke-dasharray", "stroke-linecap", "stroke-linejoin", "opacity", "fill-opacity", "stroke-opacity",
+      "font-size", "font-weight", "font-family", "font-style", "text-anchor", "dominant-baseline", "paint-order", "visibility"];
+    const TEXT_PROPS = new Set(["font-size", "font-weight", "font-family", "font-style", "text-anchor", "dominant-baseline", "paint-order"]);
+    const SVG_DEFAULT = { opacity: "1", "fill-opacity": "1", "stroke-opacity": "1", "stroke-dasharray": "none", "stroke-linecap": "butt", "stroke-linejoin": "miter",
+      "font-style": "normal", "text-anchor": "start", "dominant-baseline": "auto", "paint-order": "normal", visibility: "visible", stroke: "none", "stroke-width": "1px", "font-weight": "400" };
+    for (const sv of card.querySelectorAll("svg")) {
+      if (sv.parentElement.closest("svg") || !visible(sv)) continue;
+      const r = sv.getBoundingClientRect(); if (r.width < 1 || r.height < 1) continue;
+      const cl = sv.cloneNode(true), src = [sv, ...sv.querySelectorAll("*")], dst = [cl, ...cl.querySelectorAll("*")];
+      src.forEach((n, k) => { const c = getComputedStyle(n), d = dst[k], tag = n.tagName.toLowerCase(), isText = tag === "text" || tag === "tspan";
+        d.removeAttribute("style"); for (const pr of PROPS) d.removeAttribute(pr);   // computed values below replace attributes, classes and CSS variables
+        if (c.display === "none") { d.setAttribute("display", "none"); return; }
+        if (tag === "g" || tag === "svg") return;   // children carry their own computed values, so groups need none
+        for (const pr of PROPS) { if (!isText && TEXT_PROPS.has(pr)) continue;
+          const v = c.getPropertyValue(pr); if (v && v !== "normal" && v !== "auto" && SVG_DEFAULT[pr] !== v) d.style.setProperty(pr, v); }
+        d.removeAttribute("class"); d.removeAttribute("tabindex"); });
+      for (const a of ["tabindex", "role", "aria-label", "class", "style"]) cl.removeAttribute(a);
+      cl.setAttribute("x", r.left - ox); cl.setAttribute("y", r.top - oy); cl.setAttribute("width", r.width); cl.setAttribute("height", r.height);
+      if (!cl.getAttribute("viewBox")) cl.setAttribute("viewBox", `0 0 ${r.width} ${r.height}`);
+      cl.setAttribute("overflow", "visible"); charts.appendChild(cl);
+    }
+    // 3. HTML text, one <text> per line fragment (positions taken from the browser's own layout)
+    const walker = document.createTreeWalker(card, NodeFilter.SHOW_TEXT);
+    const rng = document.createRange();
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      if (!n.textContent.trim() || !visible(n)) continue;
+      const c = getComputedStyle(n.parentElement), fs = parseFloat(c.fontSize);
+      const words = [...n.textContent.matchAll(/\S+/g)], lines = [];
+      for (const w of words) { rng.setStart(n, w.index); rng.setEnd(n, w.index + w[0].length);
+        const rr = rng.getBoundingClientRect(); if (!rr.width) continue;
+        const last = lines[lines.length - 1];
+        if (last && Math.abs(last.top - rr.top) < fs * 0.5) { last.text += " " + w[0]; last.right = rr.right; }
+        else lines.push({ text: w[0], left: rr.left, right: rr.right, top: rr.top, h: rr.height }); }
+      for (const ln of lines) {
+        const t = el("text", { x: (ln.left - ox).toFixed(1), y: (ln.top - oy + ln.h / 2 + fs * 0.35).toFixed(1), "font-size": c.fontSize, "font-weight": c.fontWeight,
+          "font-family": c.fontFamily, fill: c.color, textLength: (ln.right - ln.left).toFixed(1), lengthAdjust: "spacingAndGlyphs" }, texts);
+        if (c.fontStyle !== "normal") t.setAttribute("font-style", c.fontStyle);
+        if (c.fontVariantNumeric !== "normal") t.style.fontVariantNumeric = c.fontVariantNumeric;
+        t.textContent = ln.text;
+      }
+    }
+    // crop to what was drawn, with a small margin
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    const grow = r => { if (r.width <= 0 || r.height <= 0) return; x0 = Math.min(x0, r.left - ox); y0 = Math.min(y0, r.top - oy); x1 = Math.max(x1, r.right - ox); y1 = Math.max(y1, r.bottom - oy); };
+    for (const e of card.querySelectorAll("*")) if (visible(e) && !e.closest("svg svg") && (e.tagName.toLowerCase() === "svg" || [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()) || alpha(getComputedStyle(e).backgroundColor) > 0)) grow(e.getBoundingClientRect());
+    if (x1 > x0) { const m = 8, vx = Math.max(0, Math.floor(x0 - m)), vy = Math.max(0, Math.floor(y0 - m)), vw = Math.ceil(x1 + m) - vx, vh = Math.ceil(y1 + m) - vy;
+      out.setAttribute("viewBox", `${vx} ${vy} ${vw} ${vh}`); out.setAttribute("width", vw); out.setAttribute("height", vh);
+      const bg = out.querySelector("rect"); bg.setAttribute("x", vx); bg.setAttribute("y", vy); bg.setAttribute("width", vw); bg.setAttribute("height", vh); }
+    const xml = '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(out);
+    const sel = state.sel == null ? "" : `-head${lab(state.sel).replace(".", "_")}`;
+    const name = `${TASK_KEY}-${card.id || "card"}${sel}.svg`;
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([xml], { type: "image/svg+xml" })); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    return { name, xml };
+  } finally {
+    card.classList.remove("exporting");
+    if (oldTheme == null) root.removeAttribute("data-theme"); else root.setAttribute("data-theme", oldTheme);
+    render();
+  }
+}
+function addExportButtons() {
+  for (const card of document.querySelectorAll("main section.card[id]")) {
+    const b = document.createElement("button"); b.className = "btn svgbtn"; b.type = "button"; b.textContent = "Save SVG";
+    const t = card.querySelector("h2"); b.setAttribute("aria-label", `Save "${t ? t.textContent : card.id}" as an SVG figure`);
+    b.title = "Download this view as an SVG figure in the light theme: charts, legends and key numbers. Title, explanation and controls are left out so the paper caption can carry them.";
+    b.addEventListener("click", () => exportCard(card)); card.insertBefore(b, t ? t.nextSibling : card.firstChild);
+  }
+}
+
 function render() {
   if (state.cond !== lastCond) { if (state.cond !== "all") state.t3order = state.cond; lastCond = state.cond; }  // the global filter sets T3's order when it changes
   stats = byCond[state.cond]; drawIntro(); drawGrids(); drawScatter(); drawDetail(); drawWhy(); drawChecks(); drawInteract(); drawAttention(); drawMap(); drawRefs(); drawGroups(); drawTemplates(); drawPrompts(); drawTable(); writeURL();
@@ -1699,6 +1822,7 @@ Promise.all([d3.json(TASK.dataUrl), TASK.listsUrl ? d3.json(TASK.listsUrl) : Pro
   d3.selectAll("#t3mode button").on("click", function () { state.t3mode = this.dataset.v;
     d3.selectAll("#t3mode button").attr("aria-pressed", function () { return this.dataset.v === state.t3mode; }); drawAttention(); });
   d3.select("#tourbtn").on("click", () => showTour(0));
+  addExportButtons();
   d3.select("#tnext").on("click", () => tourStep >= TOURS[TASK_KEY].length - 1 ? d3.select("#tour").attr("hidden", true) : showTour(tourStep + 1));
   d3.select("#tback").on("click", () => showTour(tourStep - 1));
   d3.select("#tclose").on("click", () => d3.select("#tour").attr("hidden", true));

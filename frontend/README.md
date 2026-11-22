@@ -32,6 +32,7 @@ What's there so far:
 - **Notes on every view:** each card has a "What this view shows and leaves out" section (unit, evidence, scope, whether it is causal, what it leaves out, where it can mislead).
 - **Start here and the guided tour:** a short intro with the main findings (computed from the data on load) and a step-by-step tour for each task.
 - **Shareable links:** the address bar keeps the selected head, method, patching setting and filters, so a link reopens the same view (for example `?head=5.5&ref=denoise_abc`).
+- **Save SVG:** every card has a button that downloads it as a standalone SVG for the paper: light theme whatever the page is showing, charts with their colors written in (no stylesheet needed), legends, axis labels and key numbers as real text, cropped to the content. The title, explanation, notes and controls are left out so the caption can carry them. The file's `<desc>` holds the page's link, so the exact state can be reopened. It converts to PDF with cairosvg or Inkscape.
 
 The name order filter (pooled, BABA, ABBA, IOI only) and the patching setting change every view at once, except the assumption checks, which always use the main patching setting (noising with the task's main corruption) because that is what `pipeline/diagnostics.py` measured.
 
