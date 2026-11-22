@@ -9,15 +9,15 @@ Explanation methods for language models don't always agree. Attention maps, logi
 
 We're starting with GPT-2 small on the indirect object identification (IOI) task. Wang et al. (2023) already mapped the circuit GPT-2 uses for it, so we have something to compare against.
 
-**Status:** in progress. The proposal was approved in October and the project update went in on Nov 3. Pipeline v3 and the analysis are done, we've rerun patching under five different settings, and the D3 tool has six working views. A second task (greater-than) is next.
+**Status:** in progress. The proposal was approved in October and the project update went in on Nov 3. Pipeline v3 and the analysis are done, we've rerun patching under five different settings, and the D3 tool has six working views. The second task (greater-than) has its pipeline and analysis; adding it to the tool is next.
 
 ## What's in here
 
 | Folder | What it has |
 | --- | --- |
 | `pipeline/` | Python scripts that compute the explanations and patching effects. Older versions are in `pipeline/archive/` |
-| `data/` | `ioi_lists.json`: templates, names, places and objects from Wang et al.'s dataset code |
-| `results/` | Pipeline and analysis output (JSON, plus a per-head table from v2) |
+| `data/` | `ioi_lists.json`: templates, names, places and objects from Wang et al.'s dataset code. `gt_nouns.txt`: the 120 nouns Hanna et al. used for greater-than (from their code release) |
+| `results/` | Pipeline and analysis output (JSON, plus a per-head table from v2). Greater-than output is in `results/gt/` |
 | `frontend/` | The D3 tool (one HTML page, see `frontend/README.md`) |
 | `docs/` | Links to our planning docs |
 
@@ -41,6 +41,8 @@ python pipeline/attention_patterns.py data/ioi_lists.json results
 python pipeline/analysis_v4.py results/ioi_v3_results_per_prompt.json results/attn_scores.json results/analysis_v4.json
 python pipeline/patching_variants.py data/ioi_lists.json results
 python pipeline/analysis_variants.py results/patching_variants_per_prompt.json results/ioi_v3_results_per_prompt.json results/attn_scores.json results/analysis_variants.json
+python pipeline/gt_check.py data/gt_nouns.txt results/gt
+python pipeline/analysis_gt.py results/gt results/analysis_gt.json
 ```
 
 GPT-2 small downloads from Hugging Face the first time. The pipeline takes about 4.5 minutes on a MacBook CPU (about 19 on a 2 core cloud machine) because patching every head one at a time is slow. The analysis takes a few seconds. `attention_patterns.py` only runs forward passes (under a minute) and saves each head's attention patterns for the D3 tool, plus attention at a sixth position (the token after S1 looking back at S1, where previous-token heads act) and a value-weighted version of attention. v3's averages match v2 exactly, so the proposal numbers still hold. `patching_variants.py` batches the 12 heads of a layer together and takes about half an hour on the cloud machine; it checks that its first setting reproduces v3's patching numbers.
@@ -65,9 +67,18 @@ Everything above uses one patching setup. We reran it four other ways and the an
 - Attribution patching only stands out against the setting it approximates (0.88, and 0.80 for mean ablation). Against the others it's 0.49 to 0.60.
 - The name-mover sign flip between BABA and ABBA shows up with three-new-names corruption and mean ablation, but not with the name-flip corruption or denoising, where knocking out the name movers hurts in both orders.
 
+## Second task: greater-than (Nov 21)
+
+To check whether any of this is specific to IOI, `gt_check.py` runs the same five scores on the greater-than task from Hanna et al. (2023): "The war lasted from the year 1732 to the year 17", where GPT-2 should prefer years after 32. We follow their setup (their 120 nouns, centuries 11 to 17, years GPT-2 splits into two tokens, probability difference as the metric, "01" as the corruption) with 194 prompts, two per start year. GPT-2 gets a mean probability difference of 0.83 (they report 0.82). Single-head patching puts all seven of their circuit heads in its top 10, so the setup reproduces. Numbers below are from `results/analysis_gt.json`:
+
+- Here plain attention (final token to the start year) does well at the top: its top 10 contains all seven circuit heads and overlaps patching's top 10 in 8 of 10. Reading attention at the "best" position makes it worse (5 of 10), the opposite of IOI. In this task every circuit head acts from the final token, so there's one natural place to look.
+- Logit attribution is the weakest method (Spearman 0.31, ranks 5.5 99th and 5.1 85th), which fits Hanna et al.'s account that those heads work through MLPs 8 to 11, not directly on the output.
+- Noising and denoising agree on 9 of their top 10 heads (in IOI it was 4 of 10), and knocking out both head groups is only 1.25 times the two groups separately (4.1 in IOI). Less backup behavior to confuse the two settings.
+
 ## Main references
 
 - Wang et al. 2023, *Interpretability in the Wild: a Circuit for Indirect Object Identification in GPT-2 small*
+- Hanna, Liu & Variengien 2023, *How does GPT-2 compute greater-than?* (NeurIPS)
 - Vig 2019, *A Multiscale Visualization of Attention in the Transformer Model* (BertViz)
 - Silva et al. 2025, *Visagreement: Visualizing and Exploring Explanations (Dis)Agreement* (IEEE VIS)
 - Vaidyanathan et al. 2026, *The Curse of Multiple Mediators: Hidden Interaction Effects in Activation Patching*

@@ -660,7 +660,7 @@ function drawRefs() {
         .style("fill", ink).style("font-variant-numeric", "tabular-nums").text(metric === "rho" ? v.toFixed(2) : `${v}/10`);
       g.on("mousemove", ev => showTip(ev, `<b>${r.label}</b><br><span class="muted">against</span> ${REFS[c].name}<br>` +
           (metric === "rho" ? `Spearman ρ = <b>${v.toFixed(3)}</b>` : `Top-10 overlap = <b>${v} of 10</b>`) +
-          `<br><span class="muted">Click to make this setting the reference</span>`)).on("mouseleave", hideTip);
+          (c === state.ref ? `<br><span class="muted">This is the current reference</span>` : `<br><span class="muted">Click to make this setting the reference</span>`))).on("mouseleave", hideTip);
     });
   });
   // outline the reference column
@@ -693,7 +693,7 @@ function drawTemplates() {
   const panels = [
     { key: "clean", title: "Clean logit difference", get: c => c.clean, all: byCond.all.n ? d3.mean(prompts, p => p.logit_diff) : 0, zero: true },
     { key: "rho", title: `Agreement (ρ): ${mname}`, get: c => c.rho[state.method], all: byCond.all.rho[state.method], zero: true, max1: true },
-    { key: "nm", title: "Name-mover knockout effect", get: c => c.nm, all: groupStats.all.rows[0].joint, zero: true },
+    { key: "nm", title: state.ref === "denoise_abc" ? "Name movers restored" : "Name-mover knockout effect", get: c => c.nm, all: groupStats.all.rows[0].joint, zero: true },
   ];
   if (sel != null) panels.push({ key: "head", title: `Head ${lab(sel)} patching effect`, get: c => c.truth[sel], all: byCond.all.truth[sel], zero: true });
   // columns share the card's width, so three or four panels both fit without sideways scrolling

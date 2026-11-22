@@ -1,0 +1,438 @@
+{
+ "n_prompts": 194,
+ "bootstrap_reps": 1000,
+ "metric": "probability difference: p(year > YY) - p(year <= YY)",
+ "mean_metric": {
+  "clean": 0.828,
+  "clean_sd": 0.18,
+  "corrupt_01": -0.516
+ },
+ "pairs": [
+  "end>yy",
+  "end>xx1",
+  "end>noun",
+  "yy>xx1",
+  "yy>noun"
+ ],
+ "agreement": {
+  "noise_01": {
+   "attention (end>yy)": {
+    "spearman": 0.376,
+    "top10_overlap": 8,
+    "spearman_ci95": [
+     0.342,
+     0.404
+    ]
+   },
+   "attention (best of 5)": {
+    "spearman": 0.447,
+    "top10_overlap": 5,
+    "spearman_ci95": [
+     0.415,
+     0.477
+    ]
+   },
+   "value-weighted (best of 5)": {
+    "spearman": 0.413,
+    "top10_overlap": 6,
+    "spearman_ci95": [
+     0.379,
+     0.447
+    ]
+   },
+   "dla": {
+    "spearman": 0.314,
+    "top10_overlap": 4,
+    "spearman_ci95": [
+     0.268,
+     0.352
+    ]
+   },
+   "attr_patching": {
+    "spearman": 0.956,
+    "top10_overlap": 10,
+    "spearman_ci95": [
+     0.942,
+     0.976
+    ]
+   },
+   "method_order": [
+    "attr_patching",
+    "attention (best of 5)",
+    "value-weighted (best of 5)",
+    "attention (end>yy)",
+    "dla"
+   ]
+  },
+  "denoise_01": {
+   "attention (end>yy)": {
+    "spearman": 0.349,
+    "top10_overlap": 8,
+    "spearman_ci95": [
+     0.317,
+     0.381
+    ]
+   },
+   "attention (best of 5)": {
+    "spearman": 0.432,
+    "top10_overlap": 5,
+    "spearman_ci95": [
+     0.402,
+     0.454
+    ]
+   },
+   "value-weighted (best of 5)": {
+    "spearman": 0.387,
+    "top10_overlap": 6,
+    "spearman_ci95": [
+     0.361,
+     0.41
+    ]
+   },
+   "dla": {
+    "spearman": 0.372,
+    "top10_overlap": 3,
+    "spearman_ci95": [
+     0.327,
+     0.43
+    ]
+   },
+   "attr_patching": {
+    "spearman": 0.492,
+    "top10_overlap": 9,
+    "spearman_ci95": [
+     0.47,
+     0.551
+    ]
+   },
+   "method_order": [
+    "attr_patching",
+    "attention (best of 5)",
+    "value-weighted (best of 5)",
+    "dla",
+    "attention (end>yy)"
+   ]
+  }
+ },
+ "noise_vs_denoise": {
+  "spearman": 0.502,
+  "spearman_ci95": [
+   0.469,
+   0.548
+  ],
+  "top10_overlap": 9
+ },
+ "attention_by_pair": {
+  "end>yy": 0.376,
+  "end>xx1": 0.28,
+  "end>noun": -0.08,
+  "yy>xx1": -0.113,
+  "yy>noun": -0.189
+ },
+ "circuit_head_ranks": {
+  "5.1": {
+   "attention (end>yy)": 7,
+   "attention (best of 5)": 12,
+   "value-weighted (best of 5)": 8,
+   "dla": 85,
+   "attr_patching": 9,
+   "patching (noise_01)": 9,
+   "patching (denoise_01)": 5
+  },
+  "5.5": {
+   "attention (end>yy)": 1,
+   "attention (best of 5)": 2,
+   "value-weighted (best of 5)": 2,
+   "dla": 99,
+   "attr_patching": 5,
+   "patching (noise_01)": 6,
+   "patching (denoise_01)": 6
+  },
+  "6.9": {
+   "attention (end>yy)": 2,
+   "attention (best of 5)": 4,
+   "value-weighted (best of 5)": 3,
+   "dla": 14,
+   "attr_patching": 4,
+   "patching (noise_01)": 4,
+   "patching (denoise_01)": 4
+  },
+  "7.10": {
+   "attention (end>yy)": 4,
+   "attention (best of 5)": 8,
+   "value-weighted (best of 5)": 4,
+   "dla": 2,
+   "attr_patching": 2,
+   "patching (noise_01)": 2,
+   "patching (denoise_01)": 2
+  },
+  "8.8": {
+   "attention (end>yy)": 10,
+   "attention (best of 5)": 21,
+   "value-weighted (best of 5)": 13,
+   "dla": 56,
+   "attr_patching": 6,
+   "patching (noise_01)": 8,
+   "patching (denoise_01)": 9
+  },
+  "8.11": {
+   "attention (end>yy)": 9,
+   "attention (best of 5)": 20,
+   "value-weighted (best of 5)": 11,
+   "dla": 13,
+   "attr_patching": 3,
+   "patching (noise_01)": 3,
+   "patching (denoise_01)": 3
+  },
+  "9.1": {
+   "attention (end>yy)": 3,
+   "attention (best of 5)": 6,
+   "value-weighted (best of 5)": 5,
+   "dla": 1,
+   "attr_patching": 1,
+   "patching (noise_01)": 1,
+   "patching (denoise_01)": 1
+  }
+ },
+ "circuit_heads_in_top10": {
+  "attention (end>yy)": 7,
+  "attention (best of 5)": 4,
+  "value-weighted (best of 5)": 5,
+  "dla": 2,
+  "attr_patching": 7,
+  "patching (noise_01)": 7,
+  "patching (denoise_01)": 7
+ },
+ "top10_by_setting": {
+  "noise_01": [
+   {
+    "head": "9.1",
+    "circuit": true,
+    "score": 0.2445
+   },
+   {
+    "head": "7.10",
+    "circuit": true,
+    "score": 0.1179
+   },
+   {
+    "head": "8.11",
+    "circuit": true,
+    "score": 0.072
+   },
+   {
+    "head": "6.9",
+    "circuit": true,
+    "score": 0.0576
+   },
+   {
+    "head": "10.7",
+    "circuit": false,
+    "score": 0.0381
+   },
+   {
+    "head": "5.5",
+    "circuit": true,
+    "score": 0.0379
+   },
+   {
+    "head": "0.1",
+    "circuit": false,
+    "score": 0.0307
+   },
+   {
+    "head": "8.8",
+    "circuit": true,
+    "score": 0.029
+   },
+   {
+    "head": "5.1",
+    "circuit": true,
+    "score": 0.026
+   },
+   {
+    "head": "10.4",
+    "circuit": false,
+    "score": 0.0207
+   }
+  ],
+  "denoise_01": [
+   {
+    "head": "9.1",
+    "circuit": true,
+    "score": 0.3765
+   },
+   {
+    "head": "7.10",
+    "circuit": true,
+    "score": 0.2147
+   },
+   {
+    "head": "8.11",
+    "circuit": true,
+    "score": 0.1277
+   },
+   {
+    "head": "6.9",
+    "circuit": true,
+    "score": 0.1107
+   },
+   {
+    "head": "5.1",
+    "circuit": true,
+    "score": 0.0871
+   },
+   {
+    "head": "5.5",
+    "circuit": true,
+    "score": 0.076
+   },
+   {
+    "head": "10.7",
+    "circuit": false,
+    "score": -0.0676
+   },
+   {
+    "head": "0.1",
+    "circuit": false,
+    "score": 0.052
+   },
+   {
+    "head": "8.8",
+    "circuit": true,
+    "score": 0.0514
+   },
+   {
+    "head": "0.5",
+    "circuit": false,
+    "score": 0.0295
+   }
+  ]
+ },
+ "dla_sign_of_circuit_heads": {
+  "5.1": 0.006,
+  "5.5": 0.004,
+  "6.9": -0.027,
+  "7.10": 0.057,
+  "8.8": -0.01,
+  "8.11": 0.028,
+  "9.1": 0.199
+ },
+ "group_effects": {
+  "noise_01": {
+   "early_heads": {
+    "mean": 0.596,
+    "ci95": [
+     0.543,
+     0.649
+    ]
+   },
+   "late_heads": {
+    "mean": 0.507,
+    "ci95": [
+     0.471,
+     0.541
+    ]
+   },
+   "both": {
+    "mean": 1.378,
+    "ci95": [
+     1.308,
+     1.438
+    ]
+   },
+   "mlps_8_11": {
+    "mean": 1.096,
+    "ci95": [
+     1.032,
+     1.156
+    ]
+   },
+   "sum_single_early": 0.239,
+   "sum_single_late": 0.346,
+   "separately": 1.103,
+   "both_over_separately": 1.25
+  },
+  "denoise_01": {
+   "early_heads": {
+    "mean": 0.7,
+    "ci95": [
+     0.658,
+     0.738
+    ]
+   },
+   "late_heads": {
+    "mean": 0.772,
+    "ci95": [
+     0.725,
+     0.817
+    ]
+   },
+   "both": {
+    "mean": 1.316,
+    "ci95": [
+     1.249,
+     1.374
+    ]
+   },
+   "mlps_8_11": {
+    "mean": 1.247,
+    "ci95": [
+     1.178,
+     1.308
+    ]
+   },
+   "sum_single_early": 0.489,
+   "sum_single_late": 0.556,
+   "separately": 1.472,
+   "both_over_separately": 0.89
+  }
+ },
+ "by_bucket": {
+  "02-19": {
+   "n": 36,
+   "clean_metric": 0.923,
+   "attention (end>yy)": 0.311,
+   "attention (best of 5)": 0.377,
+   "value-weighted (best of 5)": 0.318,
+   "dla": 0.438,
+   "attr_patching": 0.959
+  },
+  "20-39": {
+   "n": 40,
+   "clean_metric": 0.892,
+   "attention (end>yy)": 0.324,
+   "attention (best of 5)": 0.48,
+   "value-weighted (best of 5)": 0.438,
+   "dla": 0.257,
+   "attr_patching": 0.984
+  },
+  "40-59": {
+   "n": 40,
+   "clean_metric": 0.875,
+   "attention (end>yy)": 0.392,
+   "attention (best of 5)": 0.483,
+   "value-weighted (best of 5)": 0.474,
+   "dla": 0.321,
+   "attr_patching": 0.976
+  },
+  "60-79": {
+   "n": 40,
+   "clean_metric": 0.826,
+   "attention (end>yy)": 0.385,
+   "attention (best of 5)": 0.463,
+   "value-weighted (best of 5)": 0.433,
+   "dla": 0.397,
+   "attr_patching": 0.973
+  },
+  "80-98": {
+   "n": 38,
+   "clean_metric": 0.62,
+   "attention (end>yy)": 0.393,
+   "attention (best of 5)": 0.395,
+   "value-weighted (best of 5)": 0.372,
+   "dla": 0.284,
+   "attr_patching": 0.968
+  }
+ }
+}
