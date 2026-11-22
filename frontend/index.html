@@ -45,7 +45,7 @@ h2 { font-size: 15px; margin: 0 0 2px; font-weight: 600; }
 .card { scroll-margin-top: 96px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
 .controls { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: flex-end; position: sticky; top: 0; z-index: 5;
   background: var(--page); padding: 10px 0 12px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
-@media (max-width: 600px) { .controls { position: static; } }
+@media (max-width: 600px), (max-height: 600px) { .controls { position: static; } .card { scroll-margin-top: 12px; } }   /* phones, and short screens such as a 720p projector at 150% zoom, where a pinned toolbar would cover a third of the view */
 .ctl { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-2); }
 .ctl[hidden] { display: none; }
 .t6controls { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 10px; }
@@ -1076,8 +1076,8 @@ function drawChecks() {
     box.append("h3").text(CHECK_TITLE[c.v]);
     box.append("p").text(`Assumption of ${c.v === "direct" ? "DLA" : c.method === "attn_end" ? TASK.attnEnd.short : c.label().toLowerCase()}`);
     const svg = box.append("svg").attr("width", PL + H * (C + G2)).attr("height", PT + L * (C + G2)).attr("role", "img").attr("aria-label", `Violation of: ${c.assume()}`);
-    for (let h = 0; h < H; h += 2) svg.append("text").attr("x", PL + h * (C + G2) + C / 2).attr("y", 10).attr("text-anchor", "middle").style("font-size", "9px").text(h);
-    for (let l = 0; l < L; l += 2) svg.append("text").attr("x", PL - 4).attr("y", PT + l * (C + G2) + C / 2 + 3).attr("text-anchor", "end").style("font-size", "9px").text(l);
+    for (let h = 0; h < H; h += 2) svg.append("text").attr("x", PL + h * (C + G2) + C / 2).attr("y", 10).attr("text-anchor", "middle").style("font-size", "10px").text(h);
+    for (let l = 0; l < L; l += 2) svg.append("text").attr("x", PL - 4).attr("y", PT + l * (C + G2) + C / 2 + 3).attr("text-anchor", "end").style("font-size", "10px").text(l);
     const g = svg.append("g").attr("transform", `translate(${PL},${PT})`);
     for (let i = 0; i < NH; i++) {
       const v = G.violations[c.v][i], small = Math.abs(G.effects.full[i]) < 0.02 * maxF;
