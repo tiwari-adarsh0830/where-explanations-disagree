@@ -298,7 +298,7 @@ details summary { cursor: pointer; font-weight: 600; }
 
   <section class="card" id="interact" hidden>
     <h2>Which heads change each other's effect?</h2>
-    <p class="hint">Single-head patching assumes a head's effect does not depend on the others. Each cell patches two of the most important heads together and compares that with their two single effects added: interaction = together − (first + second). Blue: together hurts more than the sum, so each covers for the other (backup behavior). Red: together hurts less than the sum, so they sit on the same pathway and removing one already removes most of the other's effect. Click a cell to select its row head.</p>
+    <p class="hint">Single-head patching assumes a head's effect does not depend on the others. Each cell patches two of the most important heads together and compares that with their two single effects added: interaction = together − (first + second). Blue: patched together the change is above the sum; red: below it. What that means depends on the two heads. If both push toward the right answer, blue means each covers for the other (backup) and red means they sit on the same pathway, so removing one already removes part of the other's effect; for two heads that both push against it (negative name movers) it is the other way round. If one helps and the other hurts, the cell only says that one head's effect depends on the other. The tooltip and the pinned pair spell out which case applies. Click a cell to pin the pair and select its row head.</p>
     <div class="t5wrap"><div id="intsvg"></div></div>
     <div class="t5legend" id="intlegend"></div>
     <p class="t4note" id="intnote"></p>
@@ -905,7 +905,7 @@ const NOTES = () => {
       fails: "If the outlined cells are not the largest in their column, the checks do not single out the reason for that method; we report this as it comes out." },
     interact: { unit: "Pairs among the 24 heads with the largest patching effects: together minus the two single effects added.",
       evidence: "Interaction terms in activation patching are analysed in Vaidyanathan et al. (2026); here they sit next to the other checks.",
-      scope: `${scope}; ${ref}.`, causal: "Both numbers are interventions; the label (covering for each other vs same pathway) is an interpretation of the sign.",
+      scope: `${scope}; ${ref}.`, causal: "Both numbers are interventions; the labels (covering for each other, same pathway) are interpretations that depend on the signs of the two single effects, and pairs where one head helps and the other hurts get no such label.",
       leaves: "Interactions with heads outside the top 24, and among three or more heads.",
       fails: "Colors saturate at the 95th percentile; read the tooltip for exact values." },
     attention: { unit: "One head's attention, averaged over a group of prompts that share token positions.",
@@ -1023,7 +1023,7 @@ function checkText(c, i, G) {
     if (k < 0) return `Not among the ${G.top_heads.length} most important heads, so its interactions were not measured.`;
     const partners = G.top_heads.map((h, j) => [h, G.interaction[k][j]]).filter(([h, v]) => v != null && h !== lab(i)).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 3);
     return (G.violations.redundancy[i] < 0.3 ? "Its effect barely depends on the other top heads. " : "Its effect depends on other heads. ") +
-      "Largest interactions: " + partners.map(([h, v]) => `${h} (${f(v)}, ${v > 0 ? "cover for each other" : "same pathway"})`).join(", ") + "."; }
+      "Largest interactions: " + partners.map(([h, v]) => { const j = headIdx(h); return `${h} (${f(v)}, ${pairKind(F, G.effects.full[j], v).short})`; }).join(", ") + "."; }
   return "";
 }
 function drawWhy() {
@@ -1142,6 +1142,23 @@ function drawChecks() {
       "Heads in the top 30 for either score whose patching effect is at least 2% of the largest (below that the violation is a ratio of two near-zero numbers). Misranked: ranks at least 2× apart; right: within 2×. A check explains disagreements only if it breaks more often for the misranked heads (one-sided Fisher exact test, outlined below 0.1). The last column repeats the test with the pool at the top 20, 30 or 40, misranked meaning 1.5×, 2× or 3× apart, and broken meaning a violation above 0.3, 0.5 or 0.7. Where an assumption breaks for nearly every head either way, agreement with patching on a head proves little.");
   }
 }
+// What a pair interaction means depends on the signs of the two single effects. Two heads that push the same way: together bigger
+// than the sum means each covers for the other (backup), smaller means they sit on the same pathway. One head helping and one hurting
+// (negative name movers such as 10.7): the sum is a cancellation, so the only safe reading is that one head's effect depends on the other.
+function pairKind(sa, sb, v) {
+  const S = sa + sb, T = S + v;
+  if (Math.abs(v) < 0.1 * Math.max(Math.abs(sa) + Math.abs(sb), 1e-9)) return { kind: "none", short: "barely interact" };
+  if (sa * sb > 0) return Math.abs(T) > Math.abs(S) ? { kind: "backup", short: "cover for each other" } : { kind: "path", short: "same pathway" };
+  return { kind: "dep", short: "one helps, one hurts" };
+}
+function pairSentence(ha, hb, sa, sb, v) {
+  const k = pairKind(sa, sb, v), T = sa + sb + v;
+  if (k.kind === "none") return "That is close to the sum, so these two barely interact.";
+  if (k.kind === "backup") return "Both push the same way, and together they change the answer more than their two effects added, so each covers for the other: patching one alone understates both.";
+  if (k.kind === "path") return "Both push the same way, but together they change the answer less than their two effects added, so they sit on the same pathway: removing one already removes part of the other's effect.";
+  const [hA, hB, sA, sB] = Math.abs(sa) >= Math.abs(sb) ? [hb, ha, sb, sa] : [ha, hb, sa, sb];   // B = the head with the larger single effect
+  return `One pushes toward the right answer and the other against it, so the sum is a cancellation, not a size to compare. What the numbers do say: with ${hA} already patched, patching ${hB} changes the result by ${fmt(T - sA)} instead of ${fmt(sB)}, so ${hB}'s effect depends on ${hA}.`;
+}
 function drawInteract() {
   const host = d3.select("#intsvg"); host.selectAll("*").remove();
   if (!DG) return;
@@ -1164,26 +1181,31 @@ function drawInteract() {
     const ia = idxOf(heads[a]), ib = idxOf(heads[b]);
     g.append("rect").attr("class", "ic").attr("x", b * C + 0.5).attr("y", a * C + 0.5).attr("width", C - 1).attr("height", C - 1).attr("rx", 2).attr("fill", color(v)).style("cursor", "pointer")
       .on("click", () => { state.pair = [heads[a], heads[b]]; select(ia); })
-      .on("mousemove", ev => showTip(ev, `<b>${heads[a]} with ${heads[b]}</b><br>patched together: <b>${fmt(single[ia] + single[ib] + v)}</b><br>separately, added: ${fmt(single[ia] + single[ib])}<br>interaction: <b>${fmt(v)}</b> <span class="muted">(${v > 0 ? "cover for each other" : "same pathway"})</span>`)).on("mouseleave", hideTip);
+      .on("mousemove", ev => showTip(ev, `<b>${heads[a]} with ${heads[b]}</b><br>patched together: <b>${fmt(single[ia] + single[ib] + v)}</b><br>separately, added: ${fmt(single[ia] + single[ib])}<br>interaction: <b>${fmt(v)}</b> <span class="muted">(${pairKind(single[ia], single[ib], v).short})</span>`)).on("mouseleave", hideTip);
   }
   const ks = heads.indexOf(state.sel != null ? lab(state.sel) : "");
   if (ks >= 0) g.append("rect").attr("x", -1).attr("y", ks * C - 1).attr("width", Kn * C + 2).attr("height", C + 2).attr("fill", "none").attr("stroke", "var(--ring)").attr("stroke-width", 1.5).attr("pointer-events", "none");
-  d3.select("#intlegend").html(`<span>${fmt(-mx)} same pathway <svg width="90" height="8"><defs><linearGradient id="ig"><stop offset="0" stop-color="${css("--div-neg")}"/><stop offset="0.5" stop-color="${css("--div-mid")}"/><stop offset="1" stop-color="${css("--div-pos")}"/></linearGradient></defs><rect width="90" height="8" rx="2" fill="url(#ig)"/></svg> cover for each other ${fmt(mx)}</span><span class="muted">Colors saturate at ±${fmt2(mx)} (95th percentile of |interaction|); the largest is ±${fmt2(vmax)}.</span>`);
-  let best = null, worst = null;
-  for (let a = 0; a < Kn; a++) for (let b = a + 1; b < Kn; b++) { const v = M[a][b]; if (v == null) continue; if (!best || v > best[2]) best = [heads[a], heads[b], v]; if (!worst || v < worst[2]) worst = [heads[a], heads[b], v]; }
-  if (!best) { d3.select("#intnote").html("Not enough prompts in this filter to measure pairs."); return; }
-  d3.select("#intnote").html(`Strongest backup pair: <b>${best[0]} and ${best[1]}</b> (together ${fmt(best[2])} more than the sum). Strongest same-pathway pair: <b>${worst[0]} and ${worst[1]}</b> (${fmt(worst[2])}). ` +
+  d3.select("#intlegend").html(`<span>${fmt(-mx)} together below the sum <svg width="90" height="8"><defs><linearGradient id="ig"><stop offset="0" stop-color="${css("--div-neg")}"/><stop offset="0.5" stop-color="${css("--div-mid")}"/><stop offset="1" stop-color="${css("--div-pos")}"/></linearGradient></defs><rect width="90" height="8" rx="2" fill="url(#ig)"/></svg> together above the sum ${fmt(mx)}</span><span class="muted">Colors saturate at ±${fmt2(mx)} (95th percentile of |interaction|); the largest is ±${fmt2(vmax)}.</span>`);
+  let top = null; const strongest = {};
+  for (let a = 0; a < Kn; a++) for (let b = a + 1; b < Kn; b++) { const v = M[a][b]; if (v == null) continue;
+    const k = pairKind(single[idxOf(heads[a])], single[idxOf(heads[b])], v).kind, cand = [heads[a], heads[b], v, k];
+    if (!top || Math.abs(v) > Math.abs(top[2])) top = cand;
+    if (!strongest[k] || Math.abs(v) > Math.abs(strongest[k][2])) strongest[k] = cand; }
+  if (!top) { d3.select("#intnote").html("Not enough prompts in this filter to measure pairs."); return; }
+  const kindText = { backup: "both push the same way and cover for each other", path: "both push the same way and sit on the same pathway", dep: "one helps the answer and the other hurts it, so this only says their effects depend on each other", none: "barely interact" };
+  d3.select("#intnote").html(`Largest interaction: <b>${top[0]} and ${top[1]}</b> (${fmt(top[2])}; ${kindText[top[3]]}). ` +
+    (strongest.backup ? `Strongest pair that covers for each other: <b>${strongest.backup[0]} and ${strongest.backup[1]}</b> (${fmt(strongest.backup[2])}). ` : "") +
+    (strongest.path ? `Strongest same-pathway pair: <b>${strongest.path[0]} and ${strongest.path[1]}</b> (${fmt(strongest.path[2])}). ` : "") +
     `The ${Kn} heads with the largest patching effects under ${REFS[TASK.defaultRef].short}; ${TASK.orders ? ({ all: "pooled", BABA: "BABA", ABBA: "ABBA" })[state.cond] : "all"} prompts.`);
   const pp = d3.select("#intpair");
   if (state.pair && heads.includes(state.pair[0]) && heads.includes(state.pair[1])) {
     const [ha, hb] = state.pair, a = heads.indexOf(ha), b = heads.indexOf(hb), v = M[a][b], sa = single[idxOf(ha)], sb = single[idxOf(hb)];
     if (v != null) {
-      const together = sa + sb + v, ratio = Math.abs(sa + sb) > 1e-6 ? together / (sa + sb) : null;
+      const together = sa + sb + v, ratio = sa * sb > 0 ? together / (sa + sb) : null;   // a ratio only means something when both push the same way
       pp.html(`<b>Pinned pair ${ha} + ${hb}:</b> ${ha} alone ${fmt(sa)}, ${hb} alone ${fmt(sb)}, sum ${fmt(sa + sb)}; patched together <b>${fmt(together)}</b>` +
-        (ratio != null ? ` (${ratio.toFixed(2)}× the sum)` : "") + `. ` + (Math.abs(v) < 0.1 * Math.max(Math.abs(sa) + Math.abs(sb), 1e-9) ? `That is close to the sum, so these two barely interact.` : v > 0 ? `Together they matter more than the sum, so each covers for the other: patching one alone understates both.`
-          : `Together they matter less than the sum, so they sit on the same pathway: removing one already removes much of the other's effect.`) +
+        (ratio != null ? ` (${ratio.toFixed(2)}× the sum)` : "") + `. ` + pairSentence(ha, hb, sa, sb, v) +
         ` <a href="#" id="unpin">Unpin</a>`);
-      d3.select("#unpin").on("click", ev => { ev.preventDefault(); state.pair = null; drawInteract(); });
+      d3.select("#unpin").on("click", ev => { ev.preventDefault(); state.pair = null; drawInteract(); writeURL(); });
     } else pp.html("");
   } else pp.html(`<span class="muted">Click a cell to pin that pair here.</span>`);
 }
@@ -1582,6 +1604,7 @@ function applyState(st) {
   if (st.cond && (TASK.orders || st.cond === "all")) state.cond = st.cond;
   if (st.mapMode) state.mapMode = st.mapMode;
   if (st.evkey) state.evkey = st.evkey;
+  if (st.pair) state.pair = st.pair;
   if (st.cell && D.map) { state.mapCell = st.cell; const m = METHODS.find(m => m.key === "attn_cell");
     m.name = `Attention, ${D.map.labels[st.cell[0]]} → ${D.map.labels[st.cell[1]]}${state.mapMode === "vw" ? " (value-weighted)" : ""}`; m.short = `Attn (${D.map.labels[st.cell[0]]}→${D.map.labels[st.cell[1]]})`; }
   if (st.method && METHODS.some(m => m.key === st.method)) state.method = st.method;
@@ -1594,6 +1617,7 @@ function readURL() {
   for (const k of ["ref", "cond", "method", "evkey"]) if (q.get(k)) st[k] = q.get(k);
   if (q.get("cell")) st.cell = q.get("cell").split(",").map(Number);
   if (q.get("weight")) st.mapMode = q.get("weight");
+  if (/^\d+\.\d+,\d+\.\d+$/.test(q.get("pair") || "")) st.pair = q.get("pair").split(",");
   return st;
 }
 function writeURL() {
@@ -1606,7 +1630,8 @@ function writeURL() {
   if (state.mapCell) q.set("cell", state.mapCell.join(","));
   if (state.mapMode === "vw") q.set("weight", "vw");
   if (state.evkey && state.evkey !== "position") q.set("evkey", state.evkey);
-  const s = q.toString(); history.replaceState(null, "", s ? `?${s}` : location.pathname);
+  if (state.pair) q.set("pair", state.pair.join(","));
+  const s = q.toString(); history.replaceState(null, "", (s ? `?${s}` : location.pathname) + location.hash);   // keep #card so a link can open at a view
 }
 // ---------- guided tour (doubles as the demo script) ----------
 const TOURS = {
@@ -1617,7 +1642,7 @@ const TOURS = {
     { t: "It looks somewhere else", x: "From the second name, 5.5 attends to the token after the first name. The plain score only reads the final token, so it never sees this.", st: { sel: 65 }, go: "attention" },
     { t: "The yardstick moves", x: "Switched to denoising: now the reference asks whether a head is enough on its own. Final-token attention jumps from worst to decent, and DLA's top 10 matches patching's exactly.", st: { ref: "denoise_abc", method: "attn_end" }, go: "refs" },
     { t: "A finding that depends on the yardstick", x: "With the name-flip corruption, knocking out the name movers hurts in both name orders. The BABA/ABBA sign flip seen with the default setting comes from the corruption, not the model.", st: { ref: "noise_flip" }, go: "groups" },
-    { t: "Who covers for whom", x: "Back to the default setting. S-inhibition head 8.6 and negative name mover 10.7 interact most strongly: patched together they change the answer far more than their two effects added.", st: { ref: "noise_abc", sel: 102 }, go: "interact" },
+    { t: "Heads change each other's effect", x: "Back to the default setting. Pinned: name mover 9.9 and negative name mover 10.7, the largest interaction. One helps the answer and the other hurts it, and with 9.9 patched, patching 10.7 does much less than on its own. Single-head patching misses this.", st: { ref: "noise_abc", sel: 117, pair: ["9.9", "10.7"] }, go: "interact" },
   ],
   gt: [
     { t: "A different circuit", x: "Greater-than: GPT-2 should prefer end years after the start year. Head 5.1 is in the top 10 by patching, but DLA ranks it 85th.", st: { sel: 61, method: "dla" }, go: "gridscard" },
@@ -1828,6 +1853,7 @@ Promise.all([d3.json(TASK.dataUrl), TASK.listsUrl ? d3.json(TASK.listsUrl) : Pro
   d3.select("#tclose").on("click", () => d3.select("#tour").attr("hidden", true));
   const fromURL = readURL();
   if (Object.keys(fromURL).length) applyState(fromURL); else render();
+  if (location.hash.length > 1) { const el = document.getElementById(location.hash.slice(1)); if (el) requestAnimationFrame(() => el.scrollIntoView({ block: "start" })); }   // the cards exist only after the data loads, so the browser's own jump to #card comes too early
   addEventListener("resize", () => { drawScatter(); drawChecks(); drawInteract(); drawAttention(); drawMap(); drawRefs(); drawGroups(); drawTemplates(); });
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
 }).catch(e => d3.select("#err").text(`Could not load ${TASK.dataUrl}. Serve the repo root with "python3 -m http.server" and open /frontend/. (${e})`));
