@@ -18,7 +18,7 @@ We're starting with GPT-2 small on the indirect object identification (IOI) task
 | Folder | What it has |
 | --- | --- |
 | `pipeline/` | Python scripts that compute the explanations and patching effects. Older versions are in `pipeline/archive/` |
-| `data/` | `ioi_lists.json`: templates, names, places and objects from Wang et al.'s dataset code. `gt_nouns.txt`: the 120 nouns Hanna et al. used for greater-than (from their code release) |
+| `data/` | `ioi_lists.json`: templates, names, places and objects from Wang et al.'s dataset code (MIT License). `gt_nouns.txt`: the 120 nouns Hanna et al. used for greater-than (from their code release, which has no license file). Sources and license text: `data/NOTICE.md` |
 | `results/` | Pipeline and analysis output (JSON, plus a per-head table from v2). Greater-than output is in `results/gt/` |
 | `frontend/` | The D3 tool (one HTML page, see `frontend/README.md`) |
 | `tests/` | Headless browser checks of the page against the results (`bash tests/run_all.sh`) |
@@ -56,9 +56,15 @@ python pipeline/diagnostics_values.py data/ioi_lists.json results both
 python pipeline/analysis_diagnostics.py results
 python pipeline/analysis_validity.py results      # after analysis_diagnostics.py: split-half and multiple-testing checks
 python pipeline/check_interventions.py
+# another model size (all scores and checks in one script; checked against GPT-2 small first)
+python pipeline/model_check.py gpt2-small /tmp/mc_small both 2 && python pipeline/check_model_check.py /tmp/mc_small results --analysis
+python pipeline/model_check.py gpt2-medium results/gpt2-medium ioi
+python pipeline/analysis_model.py results/gpt2-medium
 ```
 
 GPT-2 small downloads from Hugging Face the first time. The pipeline takes about 4.5 minutes on a MacBook CPU (about 19 on a 2 core cloud machine) because patching every head one at a time is slow. The analysis takes a few seconds. `attention_patterns.py` only runs forward passes (under a minute) and saves each head's attention patterns for the D3 tool, plus attention at a sixth position (the token after S1 looking back at S1, where previous-token heads act) and a value-weighted version of attention. v3's averages match v2 exactly, so the proposal numbers still hold. `patching_variants.py` batches the 12 heads of a layer together and takes about half an hour on the cloud machine; it checks that its first setting reproduces v3's patching numbers. `diagnostics.py` and `diagnostics_values.py` run the extra interventions behind the assumption checks below (about 45 and 25 minutes on the cloud machine for both tasks) and checks that its full-strength patching reproduces the v3 and greater-than numbers (largest difference 0.0001).
+
+`model_check.py` recomputes every score and check (final-token attention, DLA, attribution patching, noising, half-strength, final-position, denoising, direct-path, value patching at the target, and the 276 pairs) for any GPT-2 size in one script, with the same prompts and corruptions; all GPT-2 sizes share one tokenizer, so the prompts are the same tokens. Run on GPT-2 small it matches the committed files to the saved rounding (`check_model_check.py`; largest difference 1e-4). `analysis_model.py` runs the contrast test, split-half and Holm correction on its output with the definitions loaded from `analysis_diagnostics.py` and `analysis_validity.py`; fed GPT-2 small's committed numbers it reproduces `analysis_diagnostics.json` and the corrected p-values exactly (`check_model_check.py --analysis`). GPT-2 medium (24 layers x 16 heads) takes about 5 minutes per IOI batch of 4 prompts on the cloud machine.
 
 To reproduce a figure: open the page (live link above, or `python3 -m http.server` from the repo root and `/frontend/`), set the view (the address bar keeps the head, method, patching setting and filters), and press **Save SVG** on the card. Each file records the link it came from in its `<desc>` element. For a PDF, `pip install cairosvg` and `cairosvg figure.svg -o figure.pdf`.
 
