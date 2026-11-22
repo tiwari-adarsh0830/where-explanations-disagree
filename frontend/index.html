@@ -538,12 +538,15 @@ function drawTemplates() {
   const cell = (t, o) => T.cells.find(c => c.tpl === t && c.order === o);
   const panels = [
     { key: "clean", title: "Clean logit difference", get: c => c.clean, all: byCond.all.n ? d3.mean(prompts, p => p.logit_diff) : 0, zero: true },
-    { key: "rho", title: `ρ vs patching: ${mname}`, get: c => c.rho[state.method], all: byCond.all.rho[state.method], zero: true, max1: true },
+    { key: "rho", title: `Agreement (ρ): ${mname}`, get: c => c.rho[state.method], all: byCond.all.rho[state.method], zero: true, max1: true },
     { key: "nm", title: "Name-mover knockout effect", get: c => c.nm, all: groupStats.all.rows[0].joint, zero: true },
   ];
   if (sel != null) panels.push({ key: "head", title: `Head ${lab(sel)} patching effect`, get: c => c.truth[sel], all: byCond.all.truth[sel], zero: true });
-  const labelW = 300, pw = 210, gap = 26, rowH = 22, top = 40, bottom = 26;
-  const W = labelW + panels.length * (pw + gap), Hh = top + T.tpls.length * rowH + bottom;
+  // columns share the card's width, so three or four panels both fit without sideways scrolling
+  const labelW = 280, gap = 24, rowH = 22, top = 40, bottom = 26, avail = wrap.node().clientWidth;
+  const pw = Math.max(160, Math.min(240, Math.floor((avail - labelW - panels.length * gap) / panels.length)));
+  const maxTitle = Math.floor(pw / 6.4);
+  const W = labelW + panels.length * (pw + gap) - gap + 12, Hh = top + T.tpls.length * rowH + bottom;
   const svg = wrap.append("svg").attr("width", W).attr("height", Hh).attr("role", "img").attr("aria-label", "Per-template summary");
   T.tpls.forEach((t, r) => {
     const y = top + r * rowH + rowH / 2;
@@ -558,7 +561,7 @@ function drawTemplates() {
     if (P.max1) hi = Math.max(hi, Math.min(1, hi + 0.05));
     const x = d3.scaleLinear().domain([lo, hi]).nice(4).range([x0, x0 + pw]);
     const g = svg.append("g");
-    g.append("text").attr("class", "ph").attr("x", x0).attr("y", 14).text(P.title.length > 34 ? P.title.slice(0, 33) + "…" : P.title)
+    g.append("text").attr("class", "ph").attr("x", x0).attr("y", 14).text(P.title.length > maxTitle ? P.title.slice(0, maxTitle - 1) + "…" : P.title)
       .append("title").text(P.title);
     g.append("g").attr("class", "gridline").selectAll("line").data(x.ticks(4)).join("line")
       .attr("x1", d => x(d)).attr("x2", d => x(d)).attr("y1", top - 6).attr("y2", Hh - bottom);
@@ -618,7 +621,7 @@ Promise.all([d3.json(DATA_URL), d3.json("../data/ioi_lists.json")]).then(([d, li
   d3.select("#stage").on("change", function () { state.stage = this.value; render(); });
   seg("cond", "cond"); seg("colormode", "colormode");
   render();
-  addEventListener("resize", () => { drawScatter(); drawGroups(); });
+  addEventListener("resize", () => { drawScatter(); drawGroups(); drawTemplates(); });
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
 }).catch(e => d3.select("#err").text(`Could not load ${DATA_URL}. Serve the repo root with "python3 -m http.server" and open /frontend/. (${e})`));
 </script>
