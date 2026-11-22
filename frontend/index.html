@@ -275,7 +275,7 @@ details summary { cursor: pointer; font-weight: 600; }
       <div id="vgrids" class="grids"></div>
       <div>
         <div class="t6controls"><div class="ctl">Assumption
-          <div class="seg" id="evkey"><button data-v="position" aria-pressed="true">Final token</button><button data-v="direct" aria-pressed="false">Direct</button><button data-v="linearity" aria-pressed="false">Linear</button><button data-v="redundancy" aria-pressed="false">No partners</button></div>
+          <div class="seg" id="evkey"><button data-v="position" aria-pressed="true">Final token</button><button data-v="target" aria-pressed="false">Reads target</button><button data-v="direct" aria-pressed="false">Direct</button><button data-v="linearity" aria-pressed="false">Linear</button><button data-v="redundancy" aria-pressed="false">No partners</button></div>
         </div></div>
         <p class="stat" id="evstat"></p>
         <div id="evscatter"></div>
@@ -290,6 +290,7 @@ details summary { cursor: pointer; font-weight: 600; }
     <div class="t5wrap"><div id="intsvg"></div></div>
     <div class="t5legend" id="intlegend"></div>
     <p class="t4note" id="intnote"></p>
+    <p class="t4note" id="intpair" aria-live="polite"></p>
   </section>
 
   <section class="card" id="attention">
@@ -880,8 +881,8 @@ const NOTES = () => {
       evidence: "The circuit role, if any, is the published one.", scope: `${scope}; follows the name-order filter.`,
       causal: "Only the patching rows are interventions.", leaves: "Other patching settings (see the agreement matrix) and how the effect varies by prompt (see the prompt-by-prompt card).",
       fails: "A rank of 3 versus 6 can be noise; turn on the scatter's intervals to check." },
-    why: { unit: "One head, four assumptions; each violation is a number in [0, 1] from a separate intervention.",
-      evidence: "Each check is computed, not named by hand: final-token share (final-position patching), direct share (direct-path patching), curvature (half-strength patching), interactions (pairwise patching).",
+    why: { unit: "One head, one row per assumption (final-token attention has two: where the head acts and what it reads); each violation is a number in [0, 1] from a separate intervention.",
+      evidence: "Each check is computed, not named by hand: final-token share (final-position patching), what it reads (patching only its values at the target token), direct share (direct-path patching), curvature (half-strength patching), interactions (pairwise patching).",
       scope: `${scope}; all checks use the default setting (${ref}).`, causal: "Every check is an intervention, so each reason is itself an experiment that could have come out the other way.",
       leaves: "Assumptions we do not test (for example that attention weights reflect what is read, or that the corruption removes only the task information) and heads outside the top 24 for interactions.",
       fails: "Violation scores are unstable for heads with tiny effects (marked “too small to judge”). The checks overlap: early heads tend to break several at once." },
@@ -938,17 +939,18 @@ function drawIntro() {
     : `Here depth does not help (layer number gives ρ = ${f(bl)}), but head activity alone reaches ${f(ba)}, while final-token attention gets ${f(S.rho.attn_end)} (${f(pe)} with layer held out). A method has to beat ${f(Math.max(bl, ba))} before it says anything new.`) +
     ` <a href="#scattercard">See the scatter</a>.`);
   if (DG && DG.contrast) {
-    const t = DG.contrast, fr = k => `${t[k].broken_where_disagree} of ${t[k].n_disagree} heads it misranks, against ${t[k].broken_where_agree} of ${t[k].n_agree} it gets right`;
+    const t = {}; for (const c of activeChecks()) t[c.v] = contrastOf(c);
+    const fr = k => `${t[k].broken_where_disagree} of ${t[k].n_disagree} heads it misranks, against ${t[k].broken_where_agree} of ${t[k].n_agree} it gets right`;
     const sep = [], dir = [], all = [];
-    for (const [k, nm, what] of [["attn_end", "final-token attention", "the head acts at the final token"], ["attr", "attribution patching", "the effect is linear"], ["dla", "DLA", "the effect is direct"], ["denoise", "single-head patching", "no other head changes the effect"]]) {
+    for (const [k, nm, what] of [["position", "final-token attention", "the head acts at the final token"], ["target", "final-token attention", `what it reads at ${TASK.endTarget} carries its effect`], ["linearity", "attribution patching", "the effect is linear"], ["direct", "DLA", "the effect is direct"], ["redundancy", "single-head patching", "no other head changes the effect"]]) {
       const c = t[k]; if (!c || !c.n_agree) continue; const r = c.robustness || { settings: 27, misranked_break_more: 0, "p_below_0.1": 0 };
       const steady = r.misranked_break_more >= 0.85 * r.settings;
-      if (c.n_disagree && steady && r["p_below_0.1"] >= 0.5 * r.settings) sep.push(`for ${nm}, “${what}” fails for ${fr(k)}, and this holds under all the cutoff choices we tried`);
+      if (c.n_disagree && steady && r["p_below_0.1"] >= 0.5 * r.settings) sep.push(`for ${nm}, “${what}” fails for ${fr(k)} (significant under ${r["p_below_0.1"]} of ${r.settings} cutoff choices, same direction under ${r.misranked_break_more})`);
+      else if (c.broken_where_agree / c.n_agree >= 0.5) all.push(`${nm}'s “${what}” (fails for ${c.broken_where_agree} of the ${c.n_agree} heads it gets right)`);
       else if (c.n_disagree && steady) dir.push(`for ${nm}, “${what}” fails for ${fr(k)}; the direction holds under ${r.misranked_break_more} of ${r.settings} cutoff choices but is significant in only ${r["p_below_0.1"]}`);
-      else if (c.broken_where_agree / c.n_agree >= 0.5) all.push(`${nm}'s (“${what}” fails for ${c.broken_where_agree} of the ${c.n_agree} heads it gets right)`);
     }
     items.push(`<b>Some disagreements have a checkable reason, and some agreements prove little.</b> ` +
-      (sep.length ? `A check that separates right from wrong: ${sep.join("; ")}. ` : "") +
+      (sep.length ? `Checks that separate right from wrong: ${sep.join("; ")}. ` : "") +
       (dir.length ? `Pointing the right way, but weakly: ${dir.join("; ")}. ` : "") +
       (!sep.length && !dir.length ? "No check clearly separates the heads a method gets right from the ones it misranks here. " : "") +
       (all.length ? `Assumptions that break almost everywhere: ${all.join(" and ")}, so matching patching on a head is not evidence the method reads it correctly. ` : "") +
@@ -970,13 +972,16 @@ function addNotes() {
 // ---------- assumption checks (pipeline/diagnostics.py, analysis_diagnostics.py) ----------
 let DG = null;
 const CHECKS = [
-  { v: "position", method: "attn_end", label: () => TASK.attnEnd.name, assume: () => `The head acts at the final token by reading ${TASK.endTarget}.`, link: "attention", linkText: "see where it looks" },
+  { v: "position", method: "attn_end", label: () => TASK.attnEnd.name, assume: () => "The head acts at the final token.", link: "attention", linkText: "see where it looks" },
+  { v: "target", method: "attn_end", label: () => TASK.attnEnd.name, assume: () => `What it reads at ${TASK.endTarget} carries its effect.`, link: "attention", linkText: "see where it looks" },
   { v: "direct", method: "dla", label: () => "Direct logit attribution", assume: () => "Its effect goes straight to the output.", link: "interact", linkText: "see which heads it interacts with" },
   { v: "linearity", method: "attr", label: () => "Attribution patching", assume: () => "Its effect grows in proportion to the change.", link: null },
   { v: "redundancy", method: "denoise", label: () => "Single-head patching", assume: () => "No other head changes its effect.", link: "interact", linkText: "see its partners" },
 ];
-const CHECK_TITLE = { position: "Acts at the final token?", direct: "Effect is direct?", linearity: "Effect is linear?", redundancy: "Independent of other heads?" };
-const CHECK_SHORT = { position: "final token", direct: "direct", linearity: "linear", redundancy: "no partners" };
+const CHECK_TITLE = { position: "Acts at the final token?", target: "Reads the target?", direct: "Effect is direct?", linearity: "Effect is linear?", redundancy: "Independent of other heads?" };
+const CHECK_SHORT = { position: "final token", target: "reads target", direct: "direct", linearity: "linear", redundancy: "no partners" };
+const activeChecks = () => CHECKS.filter(c => DG && DG.violations && DG.violations[c.v]);   // the target check needs pipeline/diagnostics_values.py
+const contrastOf = c => DG && DG.contrast ? (DG.contrast[c.v] || (c.v === "position" || c.v === "linearity" || c.v === "direct" || c.v === "redundancy" ? DG.contrast[c.method] : null)) : null;
 const dgFor = () => (TASK.orders && state.cond !== "all" && DG.by_order) ? { ...DG, ...DG.by_order[state.cond] } : DG;
 const level = v => v == null ? "" : v < 0.3 ? "holds" : v < 0.6 ? "partly breaks" : "breaks";
 const pct = x => `${Math.round(100 * x)}%`;
@@ -984,9 +989,16 @@ function checkText(c, i, G) {
   const E = G.effects, F = E.full[i], f = d3.format("+.2f"), small = Math.abs(F) < 0.02 * d3.max(E.full, Math.abs);
   if (small && c.v !== "redundancy") return `Its patching effect (${f(F)}) is too small to judge.`;
   if (c.v === "position") { const e = E.end[i];
-    return (G.violations.position[i] < 0.3) ? `Most of its effect comes from the final token (${f(e)} of ${f(F)}), so the assumption holds.`
+    return (G.violations.position[i] < 0.3) ? `Most of its effect comes from the final token (${f(e)} of ${f(F)}).`
       : Math.abs(e) < 0.05 * Math.abs(F) ? `Almost none of its ${f(F)} effect comes from the final token (${f(e)}); it acts at earlier tokens, where final-token attention does not look.`
       : `Only ${f(e)} of its ${f(F)} effect comes from the final token; the rest happens at earlier tokens, where final-token attention does not look.`; }
+  if (c.v === "target") {
+    const tgt = G.target_role || DG.target_role || TASK.endTarget, vt = E["val_" + tgt][i];
+    const roles = Object.keys(E).filter(k => k.startsWith("val_")).map(k => k.slice(4));
+    const best = roles.reduce((a, r) => Math.abs(E["val_" + r][i]) > Math.abs(E["val_" + a][i]) ? r : a, roles[0]), vb = E["val_" + best][i];
+    if (G.violations.target[i] < 0.3) return `What it reads at ${tgt} carries its effect (patching only those values: ${f(vt)}; all of the head: ${f(F)}).`;
+    if (best !== tgt && Math.abs(vb) >= 0.3 * Math.abs(F)) return `Its effect goes through what it reads at ${best} (${f(vb)} of ${f(F)}), not at ${tgt} (${f(vt)}), so attention to ${tgt} looks at the wrong token.`;
+    return `No single position's values carry its effect (largest: ${best}, ${f(vb)} of ${f(F)}); it works mainly through where it looks, not what it reads.`; }
   if (c.v === "direct") { const d = E.direct[i];
     if (G.violations.direct[i] < 0.3) return `The direct path carries most of its effect (${f(d)} of ${f(F)}).`;
     return Math.abs(d) > Math.abs(F) ? `Its direct push on the output (${f(d)}) is mostly undone further on: the total effect is only ${f(F)}. Other heads compensate.`
@@ -1009,11 +1021,11 @@ function drawWhy() {
   const i = state.sel; d3.select("#whyempty").style("display", i == null ? null : "none");
   if (i == null) return;
   const G = dgFor(), rP = absRank(G.effects.full), f = d3.format("+.2f");
-  const rows = CHECKS.map(c => {
+  const rows = activeChecks().map(c => {
     const rM = c.method === "denoise" ? absRank(G.effects.denoise || DG.effects.denoise)[i] : stats.rank[c.method][i];
     const dis = Math.abs(Math.log2(rM / rP[i])) >= 1 && Math.abs(rM - rP[i]) >= 5 && (rM <= 30 || rP[i] <= 30);
     const v = G.violations[c.v][i], br = v != null && v >= 0.6, ok = v != null && v < 0.3;
-    const cs = DG.contrast && DG.contrast[c.method], common = cs && cs.n_agree && cs.broken_where_agree / cs.n_agree >= 0.5;
+    const cs = contrastOf(c), common = cs && cs.n_agree && cs.broken_where_agree / cs.n_agree >= 0.5;
     const verdict = v == null || /too small/.test(checkText(c, i, G)) ? "" : dis && br ? (common
         ? `A likely reason, but not a sufficient one: this assumption also breaks for ${cs.broken_where_agree} of the ${cs.n_agree} important heads where the method agrees with patching.`
         : "This is a likely reason for the disagreement.")
@@ -1047,10 +1059,10 @@ function drawChecks() {
   if (!DG) return;
   const G = dgFor(), maxF = d3.max(G.effects.full, Math.abs), ramp = d3.scaleSequential(seqRamp()).domain([0, 1]);
   const C = 15, G2 = 1, PL = 18, PT = 14;
-  for (const c of CHECKS) {
+  for (const c of activeChecks()) {
     const box = wrap.append("div").attr("class", "vgrid");
     box.append("h3").text(CHECK_TITLE[c.v]);
-    box.append("p").text(`Assumption of ${c.v === "direct" ? "DLA" : c.v === "position" ? TASK.attnEnd.short : c.label().toLowerCase()}`);
+    box.append("p").text(`Assumption of ${c.v === "direct" ? "DLA" : c.method === "attn_end" ? TASK.attnEnd.short : c.label().toLowerCase()}`);
     const svg = box.append("svg").attr("width", PL + H * (C + G2)).attr("height", PT + L * (C + G2)).attr("role", "img").attr("aria-label", `Violation of: ${c.assume()}`);
     for (let h = 0; h < H; h += 2) svg.append("text").attr("x", PL + h * (C + G2) + C / 2).attr("y", 10).attr("text-anchor", "middle").style("font-size", "9px").text(h);
     for (let l = 0; l < L; l += 2) svg.append("text").attr("x", PL - 4).attr("y", PT + l * (C + G2) + C / 2 + 3).attr("text-anchor", "end").style("font-size", "9px").text(l);
@@ -1090,14 +1102,16 @@ function drawChecks() {
     .attr("x", p => x(p.x) - 7).attr("y", p => y(p.y) + 4).attr("text-anchor", "end").style("fill", "var(--ink)").style("font-size", "10px").text(p => lab(p.i));
   // matching table: each method's disagreement against each violation (all prompts)
   if (DG.matching) {
-    const cols = CHECKS.map(c => c.method), names = { attn_end: "final-token attn", dla: "DLA", attr: "attr. patching", denoise: "denoising" };
+    const AC = activeChecks(), cols = [...new Set(AC.map(c => c.method))], names = { attn_end: "final-token attn", dla: "DLA", attr: "attr. patching", denoise: "denoising" };
     const tb = d3.select("#matchwrap").append("table").attr("class", "match").attr("id", "matchtbl").style("margin-top", "10px");
     tb.append("tr").html(`<th style="text-align:left">violation ↓ · disagreement of →</th>${cols.map(c => `<th>${names[c]}</th>`).join("")}`);
-    for (const c of CHECKS) tb.append("tr").html(`<th style="text-align:left">${CHECK_SHORT[c.v]}</th>` +
+    for (const c of AC) if (DG.matching[c.v]) tb.append("tr").html(`<th style="text-align:left">${CHECK_SHORT[c.v]}</th>` +
       cols.map(m => { const v = DG.matching[c.v][m]; return `<td class="${m === c.method ? "diag" : ""}">${v == null || isNaN(v) ? "–" : f2(v)}</td>`; }).join(""));
-    const own = cols.filter((m, k) => { const d = DG.matching[CHECKS[k].v][m]; return CHECKS.every(c2 => { const o = DG.matching[c2.v][m]; return o == null || isNaN(o) || o <= d + 1e-9; }); }).length;
+    const val = (c, m) => DG.matching[c.v] ? DG.matching[c.v][m] : null;
+    const own = cols.filter(m => { const best = d3.max(AC, c => { const o = val(c, m); return o == null || isNaN(o) ? -Infinity : o; });
+      return AC.some(c => c.method === m && val(c, m) != null && val(c, m) >= best - 1e-9); }).length;
     d3.select("#matchwrap").append("p").attr("class", "hint").style("margin-top", "4px").style("max-width", "360px").text(
-      `Spearman over heads in the top 30 for either score, all prompts. Outlined: each method against its own assumption, which is the best predictor in its column for ${own} of 4 methods. ` +
+      `Spearman over heads in the top 30 for either score, all prompts. Outlined: each method against its own assumption, which is the best predictor in its column for ${own} of ${cols.length} methods. ` +
       (TASK_KEY === "ioi" ? "In IOI the checks move together: the middle of the circuit (S-inhibition and induction heads) acts at earlier tokens, through later heads, and with backups, all at once. So a broken check says this head is unsafe to read with that method; it is not the only reason."
         : "In greater-than the direct check breaks for almost every important head (they work through MLPs 8 to 11), so it cannot separate the heads DLA gets right from the ones it gets wrong; and noising and denoising rarely disagree, so the redundancy column has little to explain."));
   }
@@ -1106,11 +1120,14 @@ function drawChecks() {
     const pf = p => p == null ? "" : p < 0.001 ? "p < 0.001" : `p = ${p.toFixed(p < 0.1 ? 3 : 2)}`;
     const tb = d3.select("#matchwrap").append("table").attr("class", "match").attr("id", "contrasttbl").style("margin-top", "14px");
     tb.append("tr").html(`<th style="text-align:left">assumption breaks (violation > 0.5) for…</th><th>heads it misranks</th><th>heads it gets right</th><th>Fisher</th><th>over 27 cutoff choices</th>`);
-    for (const c of CHECKS) { const t = DG.contrast[c.method]; if (!t) continue;
+    const rowsC = activeChecks().map(c => [c, contrastOf(c)]);
+    if (DG.contrast.position_or_target) rowsC.splice(2, 0, [{ v: "position_or_target", method: "attn_end" }, DG.contrast.position_or_target]);
+    for (const [c, t] of rowsC) { if (!t) continue;
       const sep = t.fisher_p_one_sided != null && t.fisher_p_one_sided < 0.1;
-      tb.append("tr").html(`<th style="text-align:left">${names[c.method]}</th><td>${t.n_disagree ? `${t.broken_where_disagree} of ${t.n_disagree}` : "none misranked"}</td><td>${t.broken_where_agree} of ${t.n_agree}</td><td class="${sep ? "diag" : ""}">${pf(t.fisher_p_one_sided)}</td><td>${t.robustness ? `same direction ${t.robustness.misranked_break_more}/${t.robustness.settings}, p < 0.1 in ${t.robustness["p_below_0.1"]}` : ""}</td>`); }
+      const rowName = c.method === "attn_end" && DG.violations.target ? `${names[c.method]} <span class="ranks">(${c.v === "position_or_target" ? "either check" : CHECK_SHORT[c.v]})</span>` : names[c.method];
+      tb.append("tr").html(`<th style="text-align:left">${rowName}</th><td>${t.n_disagree ? `${t.broken_where_disagree} of ${t.n_disagree}` : "none misranked"}</td><td>${t.broken_where_agree} of ${t.n_agree}</td><td class="${sep ? "diag" : ""}">${pf(t.fisher_p_one_sided)}</td><td>${t.robustness ? `same direction ${t.robustness.misranked_break_more}/${t.robustness.settings}, p < 0.1 in ${t.robustness["p_below_0.1"]}` : ""}</td>`); }
     d3.select("#matchwrap").append("p").attr("class", "hint").style("margin-top", "4px").style("max-width", "360px").text(
-      "Heads in the top 30 for either score. Misranked: ranks at least 2× apart; right: within 2×. A check explains disagreements only if it breaks more often for the misranked heads (one-sided Fisher exact test, outlined below 0.1). The last column repeats the test with the pool at the top 20, 30 or 40, misranked meaning 1.5×, 2× or 3× apart, and broken meaning a violation above 0.3, 0.5 or 0.7. Where an assumption breaks for nearly every head either way, agreement with patching on a head proves little.");
+      "Heads in the top 30 for either score whose patching effect is at least 2% of the largest (below that the violation is a ratio of two near-zero numbers). Misranked: ranks at least 2× apart; right: within 2×. A check explains disagreements only if it breaks more often for the misranked heads (one-sided Fisher exact test, outlined below 0.1). The last column repeats the test with the pool at the top 20, 30 or 40, misranked meaning 1.5×, 2× or 3× apart, and broken meaning a violation above 0.3, 0.5 or 0.7. Where an assumption breaks for nearly every head either way, agreement with patching on a head proves little.");
   }
 }
 function drawInteract() {
@@ -1134,7 +1151,7 @@ function drawInteract() {
     const v = M[a][b]; if (v == null) continue;
     const ia = idxOf(heads[a]), ib = idxOf(heads[b]);
     g.append("rect").attr("class", "ic").attr("x", b * C + 0.5).attr("y", a * C + 0.5).attr("width", C - 1).attr("height", C - 1).attr("rx", 2).attr("fill", color(v)).style("cursor", "pointer")
-      .on("click", () => select(ia))
+      .on("click", () => { state.pair = [heads[a], heads[b]]; select(ia); })
       .on("mousemove", ev => showTip(ev, `<b>${heads[a]} with ${heads[b]}</b><br>patched together: <b>${fmt(single[ia] + single[ib] + v)}</b><br>separately, added: ${fmt(single[ia] + single[ib])}<br>interaction: <b>${fmt(v)}</b> <span class="muted">(${v > 0 ? "cover for each other" : "same pathway"})</span>`)).on("mouseleave", hideTip);
   }
   const ks = heads.indexOf(state.sel != null ? lab(state.sel) : "");
@@ -1145,6 +1162,18 @@ function drawInteract() {
   if (!best) { d3.select("#intnote").html("Not enough prompts in this filter to measure pairs."); return; }
   d3.select("#intnote").html(`Strongest backup pair: <b>${best[0]} and ${best[1]}</b> (together ${fmt(best[2])} more than the sum). Strongest same-pathway pair: <b>${worst[0]} and ${worst[1]}</b> (${fmt(worst[2])}). ` +
     `The ${Kn} heads with the largest patching effects under ${REFS[TASK.defaultRef].short}; ${TASK.orders ? ({ all: "pooled", BABA: "BABA", ABBA: "ABBA" })[state.cond] : "all"} prompts.`);
+  const pp = d3.select("#intpair");
+  if (state.pair && heads.includes(state.pair[0]) && heads.includes(state.pair[1])) {
+    const [ha, hb] = state.pair, a = heads.indexOf(ha), b = heads.indexOf(hb), v = M[a][b], sa = single[idxOf(ha)], sb = single[idxOf(hb)];
+    if (v != null) {
+      const together = sa + sb + v, ratio = Math.abs(sa + sb) > 1e-6 ? together / (sa + sb) : null;
+      pp.html(`<b>Pinned pair ${ha} + ${hb}:</b> ${ha} alone ${fmt(sa)}, ${hb} alone ${fmt(sb)}, sum ${fmt(sa + sb)}; patched together <b>${fmt(together)}</b>` +
+        (ratio != null ? ` (${ratio.toFixed(2)}× the sum)` : "") + `. ` + (Math.abs(v) < 0.1 * Math.max(Math.abs(sa) + Math.abs(sb), 1e-9) ? `That is close to the sum, so these two barely interact.` : v > 0 ? `Together they matter more than the sum, so each covers for the other: patching one alone understates both.`
+          : `Together they matter less than the sum, so they sit on the same pathway: removing one already removes much of the other's effect.`) +
+        ` <a href="#" id="unpin">Unpin</a>`);
+      d3.select("#unpin").on("click", ev => { ev.preventDefault(); state.pair = null; drawInteract(); });
+    } else pp.html("");
+  } else pp.html(`<span class="muted">Click a cell to pin that pair here.</span>`);
 }
 
 // ---------- bootstrap intervals for the agreement matrix (computed on hover, cached) ----------

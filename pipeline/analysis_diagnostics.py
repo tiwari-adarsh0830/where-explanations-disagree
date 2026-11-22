@@ -9,10 +9,15 @@ For each head, a violation score in [0, 1] says how badly the assumption behind 
   linearity  attribution patching assumes the effect is linear in the activation. From
              f(0.5) and f(1): slope at 0  a = 4 f(0.5) - f(1), curvature  b = 2 f(1) - 4 f(0.5);
              violation = |b| / (|a| + |b|)
+  target     final-token attention also assumes the head reads the target (IO / YY): value patching at the
+             target position only (pipeline/diagnostics_values.py), |full - value_at_target| / (|full| + |value_at_target|);
+             position_or_target is the larger of the two attention checks
   redundancy single-head noising assumes no other head changes this head's effect (top 24 heads):
              sum_j |INT_ij| / (sum_j |INT_ij| + |single_i|),  INT_ij = pair_ij - single_i - single_j
 Disagreement of a method with patching for a head: |log2 rank(method) - log2 rank(patching)|,
-on |score|, over heads that rank in the top 30 for either (the tail is noise).
+on |score|, over heads that rank in the top 30 for either (the tail is noise) and whose patching effect is at least
+2% of the largest (below that every violation ratio is a ratio of two near-zero numbers; the unfiltered contrast is
+also written, as contrast_all_heads, for transparency).
 
 Tests, with 95% bootstrap intervals over prompts (500 resamples, numpy seed 0):
   1. matching: Spearman between each violation and each method's disagreement. If the checks
@@ -42,6 +47,7 @@ from scipy.stats import spearmanr, rankdata, fisher_exact
 D = sys.argv[1] if len(sys.argv) > 1 else "results"
 SUFFIX = sys.argv[2] if len(sys.argv) > 2 else ""          # "_test" to run on the test files
 B = 500; H = 12; NH = 144; TOP = 30
+FMIN = 0.02     # heads whose patching effect is below 2% of the largest are left out of the tests: a violation ratio of two near-zero numbers is noise (the page already calls them "too small to judge")
 rng = np.random.default_rng(0)
 EPS = 1e-9
 
@@ -84,6 +90,12 @@ def task_data(task):
     X.update({"full": np.array([p["full"] for p in P]), "half": np.array([p["half"] for p in P]),
               "direct": np.array([p["direct"] for p in P]), "pair": np.array([p["pair"] for p in P]),
               "attn": np.array([p["attn"] for p in at]), "vw": np.array([p["vw"] for p in at])})
+    vf = f"{D}/diagnostics_values_ioi{SUFFIX}.json" if task == "ioi" else f"{D}/gt/diagnostics_values{SUFFIX}.json"
+    try:
+        vv = json.load(open(vf)); assert [p["text"] for p in vv["prompts"]] == [p["text"] for p in P]
+        X["val"] = {r: np.array([p[r] for p in vv["prompts"]]) for r in vv["roles"]}; X["target_role"] = vv["target"]
+    except FileNotFoundError:
+        pass
     X["top"] = [idx(h) for h in dg["top_heads"]]; X["pairs"] = [(idx(a), idx(c)) for a, c in dg["pairs"]]
     X["n"] = n; X["tpl"] = np.array([p["tpl"] for p in P])
     return X
@@ -99,6 +111,11 @@ def measures(X, s):
     v = {"position": np.abs(F - m["end"]) / (np.abs(F) + np.abs(m["end"]) + EPS),
          "direct": np.abs(F - m["direct"]) / (np.abs(F) + np.abs(m["direct"]) + EPS),
          "linearity": np.abs(b) / (np.abs(a) + np.abs(b) + EPS)}
+    if "val" in X:
+        for r, arr in X["val"].items(): m["val_" + r] = arr[s].mean(0)
+        vt = m["val_" + X["target_role"]]
+        v["target"] = np.abs(F - vt) / (np.abs(F) + np.abs(vt) + EPS)
+        v["position_or_target"] = np.maximum(v["position"], v["target"])
     pm = X["pair"][s].mean(0); INT = np.zeros((NH, NH)) * np.nan
     for k, (i, j) in enumerate(X["pairs"]):
         INT[i, j] = INT[j, i] = pm[k] - F[i] - F[j]
@@ -109,12 +126,13 @@ def measures(X, s):
     return m, v, INT
 
 METHOD_OF = {"position": "attn_end", "direct": "dla", "linearity": "attr", "redundancy": "denoise"}
+CHECK_OF = {**METHOD_OF, "target": "attn_end", "position_or_target": "attn_end"}     # every check and the method it is about
 METHOD_NAME = {"attn_end": "final-token attention", "dla": "DLA", "attr": "attribution patching", "denoise": "denoising (vs noising)",
                "attn_best": "best-position attention", "vw_best": "value-weighted best position"}
 
-def disagreement(m, method):
-    rm, rr = ranks(m[method]), ranks(m["full"])
-    rel = (rm <= TOP) | (rr <= TOP)
+def disagreement(m, method, fmin=FMIN):
+    rm, rr = ranks(m[method]), ranks(m["full"]); F = np.abs(m["full"])
+    rel = ((rm <= TOP) | (rr <= TOP)) & (F >= fmin * F.max())
     return np.abs(np.log2(rm) - np.log2(rr)), rel
 
 def matching(m, v):
@@ -146,21 +164,27 @@ def analyse(task):
                        "heads": [{"head": f"{i // H}.{i % H}", "rank_method": int(rm[i]), "rank_patching": int(rr[i]),
                                   "violation": None if v[vk][i] != v[vk][i] else round(float(v[vk][i]), 3)} for i in order]}
     res["top10_disagreements"] = top10
-    contrast = {}
-    for vk, meth in METHOD_OF.items():
+    contrast, contrast_all = {}, {}
+    for vk, meth in CHECK_OF.items():
+        if vk not in v: continue
+        g0, rel0 = disagreement(m, meth, 0.0); ok0 = rel0 & ~np.isnan(v[vk]); br0 = v[vk] > 0.5
+        d0, a0 = ok0 & (g0 >= 1), ok0 & (g0 < 1); bd0, nd0, ba0, na0 = int((br0 & d0).sum()), int(d0.sum()), int((br0 & a0).sum()), int(a0.sum())
+        contrast_all[vk] = {"broken_where_disagree": bd0, "n_disagree": nd0, "broken_where_agree": ba0, "n_agree": na0,
+                            "fisher_p_one_sided": round(float(fisher_exact([[bd0, nd0 - bd0], [ba0, na0 - ba0]], alternative="greater")[1]), 4) if nd0 and na0 else None}
         g, rel = disagreement(m, meth); ok = rel & ~np.isnan(v[vk]); br = v[vk] > 0.5
         dI, aI = ok & (g >= 1), ok & (g < 1)
         bd, nd, ba, na = int((br & dI).sum()), int(dI.sum()), int((br & aI).sum()), int(aI.sum())
         p = fisher_exact([[bd, nd - bd], [ba, na - ba]], alternative="greater")[1] if nd and na else None
-        contrast[meth] = {"assumption": vk, "broken_where_disagree": bd, "n_disagree": nd, "broken_where_agree": ba, "n_agree": na,
+        contrast[vk] = {"method": meth, "assumption": vk, "broken_where_disagree": bd, "n_disagree": nd, "broken_where_agree": ba, "n_agree": na,
                           "fisher_p_one_sided": None if p is None else round(float(p), 4)}
     def ctab(mm, vv, meth, vk, top, gap, thr):
         rm, rr = ranks(mm[meth]), ranks(mm["full"]); g = np.abs(np.log2(rm) - np.log2(rr))
-        ok = ((rm <= top) | (rr <= top)) & ~np.isnan(vv[vk]); br = vv[vk] > thr
+        F = np.abs(mm["full"]); ok = ((rm <= top) | (rr <= top)) & ~np.isnan(vv[vk]) & (F >= FMIN * F.max()); br = vv[vk] > thr
         dI, aI = ok & (g >= np.log2(gap)), ok & (g < np.log2(gap))
         return int((br & dI).sum()), int(dI.sum()), int((br & aI).sum()), int(aI.sum())
     rb = np.random.default_rng(1); bsamp = [rb.integers(0, n, n) for _ in range(300)]; bmeas = [measures(X, s)[:2] for s in bsamp]
-    for vk, meth in METHOD_OF.items():
+    for vk, meth in CHECK_OF.items():
+        if vk not in v: continue
         dirn = sig = tot = 0
         for top in (20, 30, 40):
             for gap in (1.5, 2, 3):
@@ -173,9 +197,9 @@ def analyse(task):
         for mm, vv in bmeas:
             bd, nd, ba, na = ctab(mm, vv, meth, vk, TOP, 2, 0.5)
             if nd and na: diffs.append(bd / nd - ba / na)
-        contrast[meth]["robustness"] = {"settings": tot, "misranked_break_more": int(dirn), "p_below_0.1": int(sig),
+        contrast[vk]["robustness"] = {"settings": tot, "misranked_break_more": int(dirn), "p_below_0.1": int(sig),
                                         "boot_diff_ci95": ci(diffs) if len(diffs) >= 50 else None, "boot_n": len(diffs)}
-    res["contrast"] = contrast
+    res["contrast"] = contrast; res["contrast_all_heads"] = contrast_all; res["fmin"] = FMIN
     # layer control, against noising (the reference the checks use) and denoising
     lc = {}
     for ref_name, ref in (("noising", m["full"]), ("denoising", m["denoise"])):
@@ -203,16 +227,18 @@ def analyse(task):
     r3 = lambda a: [None if x != x else round(float(x), 4) for x in np.asarray(a).tolist()]
     summary = {"task": task, "reference": "noising, " + ("ABC corruption" if task == "ioi" else "“01” corruption"),
                "note": "per-head arrays: 144 entries, index = layer*12 + head; violations in [0, 1], null where not computed",
-               "effects": {k: r3(m[k]) for k in ("full", "end", "direct", "slope0", "curv", "denoise", "dla", "attr")},
+               "effects": {k: r3(m[k]) for k in ("full", "end", "direct", "slope0", "curv", "denoise", "dla", "attr") + tuple(k for k in m if k.startswith("val_"))},
+               "target_role": X.get("target_role"),
                "violations": {k: r3(x) for k, x in v.items()},
                "top_heads": res["top_heads"], "interaction": [[None if INT[i, j] != INT[i, j] else round(float(INT[i, j]), 4) for j in X["top"]] for i in X["top"]],
                "rank_ci": rank_ci, "matching": res["matching"], "matching_ci95": res["matching_ci95"],
-               "top10": res["top10_disagreements"], "contrast": res["contrast"], "layer_control": res["layer_control"]}
+               "top10": res["top10_disagreements"], "contrast": res["contrast"], "contrast_all_heads": res["contrast_all_heads"], "fmin": FMIN,
+               "layer_control": res["layer_control"]}
     if X["order"] is not None:    # IOI: per name order too, for the page's filter
         summary["by_order"] = {}
         for o in ("BABA", "ABBA"):
             s = np.where(X["order"] == o)[0]; mo, vo, INTo = measures(X, s)
-            summary["by_order"][o] = {"effects": {k: r3(mo[k]) for k in ("full", "end", "direct", "slope0", "curv", "denoise", "dla", "attr")},
+            summary["by_order"][o] = {"effects": {k: r3(mo[k]) for k in ("full", "end", "direct", "slope0", "curv", "denoise", "dla", "attr") + tuple(k for k in mo if k.startswith("val_"))},
                                       "violations": {k: r3(x) for k, x in vo.items()},
                                       "interaction": [[None if INTo[i, j] != INTo[i, j] else round(float(INTo[i, j]), 4) for j in X["top"]] for i in X["top"]]}
     return res, summary
@@ -228,7 +254,7 @@ for task in ("ioi", "gt"):
     print("contrast (violation > 0.5 where ranks are 2x apart vs within 2x):")
     for meth, c in res["contrast"].items():
         r = c["robustness"]
-        print(f"  {meth:9s} {c['broken_where_disagree']}/{c['n_disagree']} vs {c['broken_where_agree']}/{c['n_agree']}  Fisher p = {c['fisher_p_one_sided']}"
+        print(f"  {meth:18s} {c['broken_where_disagree']}/{c['n_disagree']} vs {c['broken_where_agree']}/{c['n_agree']}  Fisher p = {c['fisher_p_one_sided']}"
               f"  | 27 cutoffs: direction {r['misranked_break_more']}/{r['settings']}, p<0.1 {r['p_below_0.1']}/{r['settings']}; bootstrap diff {r['boot_diff_ci95']} ({r['boot_n']} resamples)")
     for meth, t in res["top10_disagreements"].items():
         print(f"top-10 disagreements, {meth}: {t['n_with_violation_over_0.5']}/{t['n_checked']} with {t['assumption']} violation > 0.5:",
