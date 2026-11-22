@@ -191,6 +191,19 @@ details summary { cursor: pointer; font-weight: 600; }
     <p class="t4note" id="t3note"></p>
   </section>
 
+  <section class="card" id="map" hidden>
+    <h2>Where should attention be read?</h2>
+    <p class="hint" id="maphint">Each cell scores every head by its attention from one query token (row) to one key token (column), averaged over prompts, and colors the cell by how well that score agrees with patching (Spearman ρ on |score| over the 144 heads) for the current name order and patching setting. Outlined cells are the positions the “best pair” score uses. Click a cell to compare that position with patching in the scatter above. Blank cells have the same attention for every head (for example a token attending only to itself).</p>
+    <div class="t6controls">
+      <div class="ctl">Weighting
+        <div class="seg" id="mapmode"><button data-v="attn" aria-pressed="true">Raw attention</button><button data-v="vw" aria-pressed="false">Value-weighted</button></div>
+      </div>
+    </div>
+    <div class="t5wrap"><div id="mapsvg"></div></div>
+    <div class="t5legend" id="maplegend"></div>
+    <p class="t4note" id="mapnote"></p>
+  </section>
+
   <section class="card" id="refs" hidden>
     <h2>Does the answer depend on how you patch?</h2>
     <p class="hint" id="t6hint">Activation patching is not one measurement. Each column is a different way of doing it: noising (swap a head's output for its output on a corrupted prompt) or denoising (put a head's clean output back into a corrupted run), with three-new-names (ABC) corruption, a name flip, or the average over corrupted prompts, at all positions or the final token only. Each cell says how well the row agrees with that column, as Spearman ρ on |score| over the 144 heads (or top-10 overlap), for the prompts in the Name order filter. Click a column to make it the reference for every other view. Attribution patching is a gradient estimate of the first column, so it has a built-in advantage there.</p>
@@ -262,6 +275,7 @@ const TASKS = {
   ioi: {
     dataUrl: "../results/ioi_v3_results_per_prompt.json", attnUrl: "../results/attn_scores.json",
     varUrl: "../results/patching_variants_per_prompt.json", attnDir: "../results/attn/", listsUrl: "../data/ioi_lists.json",
+    mapUrl: "../results/attn_map.json", mapEnd: "END",
     intro: "GPT-2 small on indirect object identification (IOI).",
     metricExpr: "logit(IO) − logit(S)", metricShort: "logit difference", circuit: "the IOI circuit",
     orders: true, defaultRef: "noise_abc", denoise: "denoise_abc",
@@ -293,6 +307,7 @@ const TASKS = {
   gt: {
     dataUrl: "../results/gt/per_prompt.json", attnUrl: "../results/gt/attn_scores.json",
     varUrl: "../results/gt/patching_variants_per_prompt.json", attnDir: "../results/gt/attn/", listsUrl: null,
+    mapUrl: "../results/gt/attn_map.json", mapEnd: "XX end",
     intro: "GPT-2 small on greater-than (Hanna et al. 2023): after “The war lasted from the year 1732 to the year 17” it should prefer end years after 32.",
     metricExpr: "p(year > YY) − p(year ≤ YY)", metricShort: "probability difference", circuit: "the greater-than circuit",
     orders: false, defaultRef: "noise_01", denoise: "denoise_01",
@@ -338,7 +353,11 @@ const METHODS = [
   { key: "dla", name: "Direct logit attribution", short: "DLA" },
   { key: "attr", name: "Attribution patching", short: "Attr. patching" },
   { key: "truth", name: "Activation patching (reference)", short: "Act. patching" },
+  { key: "attn_cell", name: "Attention at a chosen position", short: "Attn (chosen cell)", grid: false, cell: true },
+  { key: "base_layer", name: "Baseline: layer number", short: "Layer (baseline)", grid: false, baseline: true },
+  { key: "base_act", name: "Baseline: head activity (1 − attention to BOS)", short: "Activity (baseline)", grid: false, baseline: true },
 ];
+const shownMethods = () => METHODS.filter(m => m.key !== "truth" && (!m.cell || state.mapCell) && (!m.baseline || D.map || m.key === "base_layer"));
 const BANDS = [[1, 10, "top 10"], [11, 25, "11–25"], [26, 50, "26–50"], [51, 100, "51–100"], [101, 144, "101–144"]];
 const bandColor = r => css(`--q${5 - BANDS.findIndex(([a, b]) => r >= a && r <= b)}`);
 const seqRamp = () => d3.interpolateRgbBasis([1, 2, 3, 4, 5].map(k => css(`--q${k}`)));
@@ -384,6 +403,10 @@ function compute(cond) {
   out.attn_best = A.map(r => d3.max(r));
   out.bestPair = A.map(r => D.pairs[d3.maxIndex(r)]);
   out.vwPairs = VW; out.vw_best = VW.map(r => d3.max(r));
+  out.base_layer = d3.range(NH).map(i => Math.floor(i / H));
+  const mapA = D.map && D.map[state.mapMode || "attn"][cond], e = D.map ? D.map.labels.indexOf(TASK.mapEnd) : -1;
+  out.base_act = mapA ? d3.range(NH).map(i => 1 - mapA[i][e][0]) : out.base_layer.map(() => 0);
+  out.attn_cell = mapA && state.mapCell ? d3.range(NH).map(i => mapA[i][state.mapCell[0]][state.mapCell[1]]) : out.base_layer.map(() => 0);
   out.rank = {}; for (const m of METHODS) out.rank[m.key] = absRank(out[m.key]);
   out.rho = {}; out.top = {}; const tt = top10(out.truth);
   for (const m of METHODS) if (m.key !== "truth") {
@@ -502,7 +525,8 @@ function drawScatter() {
     .on("mouseleave", hideTip)
     .on("click", ev => { const [px, py] = d3.pointer(ev); const i = del.find(px, py);
       if (Math.hypot(x(xr[i]) - px, y(yr[i]) - py) <= 24) select(i); });
-  d3.select("#stat").html(`Spearman ρ on |score| = <b>${d3.format(".3f")(stats.rho[state.method])}</b> · top-10 overlap <b>${stats.top[state.method]}</b>/10 · ${stats.n} prompts`);
+  d3.select("#stat").html(`Spearman ρ on |score| = <b>${d3.format(".3f")(stats.rho[state.method])}</b> · top-10 overlap <b>${stats.top[state.method]}</b>/10 · ${stats.n} prompts` +
+    `<br><span class="muted">For scale, layer number alone gets ρ = ${d3.format(".2f")(stats.rho.base_layer)}` + (D.map ? ` and head activity ${d3.format(".2f")(stats.rho.base_act)}` : "") + `.</span>`);
   d3.select("#keys").html(Object.keys(STAGE_NAME).map(s => `<span><i class="sw" style="background:var(--${s})"></i>${STAGE_NAME[s]}</span>`).join("") +
     `<span><i class="sw" style="background:var(--other)"></i>Other heads</span>`);
 }
@@ -516,7 +540,7 @@ function drawDetail() {
   body.append("p").attr("class", "hint").text(`${roleText(i)} · ${stats.n} prompts (${!TASK.orders ? "all" : state.cond === "all" ? "pooled" : state.cond})`);
   const t = body.append("table");
   t.append("tr").html("<th>Method</th><th>Score</th><th>Rank</th>");
-  for (const m of METHODS) t.append("tr").html(`<td>${m.short}</td><td>${fmt(stats[m.key][i])}</td><td>${stats.rank[m.key][i]}</td>`);
+  for (const m of METHODS.filter(m => m.key === "truth" || shownMethods().includes(m))) t.append("tr").html(`<td>${m.short}</td><td>${fmt(stats[m.key][i])}</td><td>${stats.rank[m.key][i]}</td>`);
   body.append("h2").style("margin-top", "16px").text("Attention at each query → key pair");
   const W = 300, rowH = 22, svg = body.append("svg").attr("width", W).attr("height", D.pairs.length * rowH + 4);
   const x = d3.scaleLinear().domain([0, 1]).range([120, W - 40]);
@@ -537,7 +561,7 @@ function drawDetail() {
 // ---------- table view ----------
 function drawTable() {
   const cols = [{ k: "head", n: "Head" }, { k: "role", n: "Role" },
-    ...METHODS.flatMap(m => [{ k: m.key + "_rank", n: m.short + " rank" }, { k: m.key + "_val", n: m.short }])];
+    ...METHODS.filter(m => m.key === "truth" || shownMethods().includes(m)).flatMap(m => [{ k: m.key + "_rank", n: m.short + " rank" }, { k: m.key + "_val", n: m.short }])];
   const rows = d3.range(NH).map(i => { const r = { i, head: lab(i), role: role[i] ? ROLE_NAME[role[i]] : "" };
     for (const m of METHODS) { r[m.key + "_rank"] = stats.rank[m.key][i]; r[m.key + "_val"] = stats[m.key][i]; } return r; });
   const k = state.sortKey, dir = state.sortAsc ? 1 : -1;
@@ -674,16 +698,70 @@ function computeTemplates() {
     }
     m.attn_end = A.map(r => r[0]); m.attn_best = A.map(r => d3.max(r)); m.vw_best = VW.map(r => d3.max(r));
     const rho = {}; for (const k of ["attn_end", "attn_best", "vw_best", "dla", "attr"]) rho[k] = spearman(m[k], m.truth);
+    rho.base_layer = spearman(d3.range(NH).map(i => Math.floor(i / H)), m.truth);
     cells.push({ tpl: t, order: o, n, clean: d3.mean(ps, p => p.logit_diff), nm: d3.mean(ps, p => p.group_drop[TASK.t5group]), rho, truth: m.truth });
   }
   return { tpls, cells };
 }
+// ---------- position map: agreement at every query > key cell ----------
+function drawMap() {
+  const host = d3.select("#mapsvg"); host.selectAll("*").remove();
+  if (!D.map) return;
+  const labs = D.map.labels, Q = labs.length, A = D.map[state.mapMode || "attn"][state.cond] || D.map.attn.all, T = stats.truth;
+  const rhoAt = (q, k) => { const v = d3.range(NH).map(i => A[i][q][k]); return d3.max(v) - d3.min(v) < 1e-9 ? null : spearman(v, T); };
+  const M = d3.range(Q).map(q => d3.range(Q).map(k => rhoAt(q, k)));
+  const hand = new Set(D.map.hand.map(([q, k]) => `${q},${k}`));
+  const all = M.flat().filter(v => v != null), mx = Math.max(0.3, d3.max(all, Math.abs));
+  const color = d3.scaleDiverging(d3.interpolateRgbBasis([css("--div-neg"), css("--div-mid"), css("--div-pos")])).domain([-mx, 0, mx]);
+  const avail = host.node().clientWidth || 700, rowLab = 86, colLab = 70;
+  const C = Math.max(26, Math.min(44, Math.floor((Math.min(avail, 760) - rowLab - 20) / Q)));
+  const svg = host.append("svg").attr("width", rowLab + Q * C + 40).attr("height", colLab + Q * C + 26).attr("role", "img")
+    .attr("aria-label", "Agreement with patching for attention at every query and key position");
+  labs.forEach((t, k) => {
+    svg.append("text").attr("x", rowLab - 6).attr("y", colLab + k * C + C / 2 + 4).attr("text-anchor", "end").text(t);
+    svg.append("text").attr("transform", `translate(${rowLab + k * C + C / 2 + 4},${colLab - 6}) rotate(-55)`).text(t);
+  });
+  svg.append("text").attr("x", rowLab - 6).attr("y", colLab - 8).attr("text-anchor", "end").style("font-size", "10px").text("query ↓ key →");
+  const g = svg.append("g").attr("transform", `translate(${rowLab},${colLab})`);
+  for (let q = 0; q < Q; q++) for (let k = 0; k < Q; k++) {
+    const v = M[q][k]; if (v == null) continue;
+    const cell = g.append("g").style("cursor", "pointer").on("click", () => chooseCell(q, k));
+    cell.append("rect").attr("x", k * C + 1).attr("y", q * C + 1).attr("width", C - 2).attr("height", C - 2).attr("rx", 3).attr("fill", color(v));
+    if (C >= 34) cell.append("text").attr("x", k * C + C / 2).attr("y", q * C + C / 2 + 4).attr("text-anchor", "middle").style("font-size", "10px")
+      .style("fill", d3.lab(color(v)).l > 60 ? "#0b0b0b" : "#ffffff").text(v.toFixed(2).replace("-", "−").replace(/^0/, "").replace(/^−0/, "−"));
+    cell.on("mousemove", ev => showTip(ev, `<b>${labs[q]} → ${labs[k]}</b><br>Spearman ρ with patching = <b>${v.toFixed(3)}</b>` +
+      (hand.has(`${q},${k}`) ? `<br><span class="muted">one of the hand-picked positions</span>` : "") + `<br><span class="muted">Click to compare in the scatter</span>`)).on("mouseleave", hideTip);
+  }
+  for (const key of hand) { const [q, k] = key.split(",").map(Number);
+    g.append("rect").attr("x", k * C).attr("y", q * C).attr("width", C).attr("height", C).attr("rx", 4).attr("fill", "none").attr("stroke", "var(--ring)").attr("stroke-width", 1).attr("pointer-events", "none"); }
+  if (state.mapCell) { const [q, k] = state.mapCell;
+    g.append("rect").attr("x", k * C - 1).attr("y", q * C - 1).attr("width", C + 2).attr("height", C + 2).attr("rx", 5).attr("fill", "none").attr("stroke", "var(--ring)").attr("stroke-width", 3).attr("pointer-events", "none"); }
+  d3.select("#maplegend").html(`<span>ρ ${(-mx).toFixed(2).replace("-", "−")} <svg width="90" height="8"><defs><linearGradient id="mapg"><stop offset="0" stop-color="${css("--div-neg")}"/><stop offset="0.5" stop-color="${css("--div-mid")}"/><stop offset="1" stop-color="${css("--div-pos")}"/></linearGradient></defs><rect width="90" height="8" rx="2" fill="url(#mapg)"/></svg> +${mx.toFixed(2)}</span>` +
+    `<span><svg width="14" height="14"><rect x="1" y="1" width="12" height="12" rx="2" fill="none" stroke="var(--ring)" stroke-width="1"/></svg>Hand-picked position</span>` +
+    `<span><svg width="14" height="14"><rect x="1.5" y="1.5" width="11" height="11" rx="2" fill="none" stroke="var(--ring)" stroke-width="3"/></svg>Shown in the scatter</span>`);
+  let best = null; for (let q = 0; q < Q; q++) for (let k = 0; k < Q; k++) if (M[q][k] != null && (!best || M[q][k] > best[2])) best = [q, k, M[q][k]];
+  const f = d3.format(".2f");
+  d3.select("#mapnote").html(`Best single position: <b>${labs[best[0]]} → ${labs[best[1]]}</b> (ρ = ${f(best[2])}). ` +
+    `Each head at its best hand-picked position: ρ = <b>${f(stats.rho.attn_best)}</b>. ` +
+    `For scale, layer number alone gets ${f(stats.rho.base_layer)} and head activity ${f(stats.rho.base_act)}.`);
+}
+function chooseCell(q, k) {
+  state.mapCell = [q, k];
+  METHODS.find(m => m.key === "attn_cell").name = `Attention, ${D.map.labels[q]} → ${D.map.labels[k]}${state.mapMode === "vw" ? " (value-weighted)" : ""}`;
+  METHODS.find(m => m.key === "attn_cell").short = `Attn (${D.map.labels[q]}→${D.map.labels[k]})`;
+  state.method = "attn_cell"; refreshMethodSelect(); recomputeAll(); render();
+}
+function refreshMethodSelect() {
+  d3.select("#method").selectAll("option").data(shownMethods(), m => m.key).join("option").attr("value", m => m.key).text(m => m.name);
+  d3.select("#method").property("value", state.method);
+}
+
 // ---------- T6: agreement between methods and patching settings ----------
 function drawRefs() {
   const host = d3.select("#t6"); host.selectAll("*").remove(); d3.select("#t6tbl").selectAll("*").remove();
   if (!stats.var) return;
   const V = Object.keys(stats.var), metric = state.t6metric;
-  const rowsM = METHODS.filter(m => m.key !== "truth").map(m => ({ key: m.key, label: m.name, get: () => stats[m.key], method: true }));
+  const rowsM = shownMethods().map(m => ({ key: m.key, label: m.name, get: () => stats[m.key], method: true, baseline: !!m.baseline }));
   const rowsV = V.map(v => ({ key: v, label: REFS[v].name, get: () => stats.var[v], method: false }));
   const rows = [...rowsM, ...rowsV];
   const val = (r, c) => {
@@ -712,7 +790,8 @@ function drawRefs() {
   rows.forEach((r, i) => {
     const y = yOf(i);
     svg.append("text").attr("x", labelW - 10).attr("y", y + ch / 2 + 4).attr("text-anchor", "end")
-      .style("fill", r.method && r.key === state.method ? "var(--ink)" : "var(--ink-2)").style("font-weight", r.method && r.key === state.method ? 600 : 400)
+      .style("fill", r.method && r.key === state.method ? "var(--ink)" : r.baseline ? "var(--muted)" : "var(--ink-2)").style("font-weight", r.method && r.key === state.method ? 600 : 400)
+      .style("font-style", r.baseline ? "italic" : "normal")
       .text(r.label.length > labelW / 6.4 ? r.label.slice(0, Math.floor(labelW / 6.4) - 1) + "…" : r.label).append("title").text(r.label);
     V.forEach((c, j) => {
       const x = labelW + j * cw, v = val(r, c);
@@ -741,12 +820,15 @@ function drawRefs() {
   const labs = metric === "rho" ? ["< 0.2", "0.2–0.4", "0.4–0.6", "0.6–0.8", "≥ 0.8"] : ["0–2", "3–4", "5–6", "7–8", "9–10"];
   d3.select("#t6legend").html(labs.map((t, k) => `<span><i style="display:inline-block;width:14px;height:10px;border-radius:2px;vertical-align:-1px;background:var(--q${k + 1})"></i> ${t}</span>`).join(" "));
   // note: which method wins under the current reference
-  const scored = rowsM.map(r => ({ r, v: val(r, state.ref) })).sort((a, b) => b.v - a.v);
-  const fmtv = v => metric === "rho" ? `ρ = ${v.toFixed(2)}` : `${v}/10`;
+  const fmtv = v => metric === "rho" ? `ρ = ${v.toFixed(2).replace("-", "−")}` : `${v}/10`;
+  const scored = rowsM.filter(r => !r.baseline).map(r => ({ r, v: val(r, state.ref) })).sort((a, b) => b.v - a.v);
+  const baseTxt = rowsM.filter(r => r.baseline).map(r => `${r.key === "base_layer" ? "layer number" : "head activity"} ${fmtv(val(r, state.ref))}`).join(", ");
+
   const nonAttr = scored.filter(x => x.r.key !== "attr");
   d3.select("#t6note").html(`Against <b>${REFS[state.ref].short}</b> (${TASK.orders ? { all: "pooled", BABA: "BABA", ABBA: "ABBA" }[state.cond] : "all"} prompts), ` +
     `the best-agreeing method is <b>${scored[0].r.label}</b> (${fmtv(scored[0].v)}) and the weakest is <b>${scored[scored.length - 1].r.label}</b> (${fmtv(scored[scored.length - 1].v)}).` +
-    (scored[0].r.key === "attr" ? ` Leaving out attribution patching, it is <b>${nonAttr[0].r.label}</b> (${fmtv(nonAttr[0].v)}).` : ""));
+    (scored[0].r.key === "attr" ? ` Leaving out attribution patching, it is <b>${nonAttr[0].r.label}</b> (${fmtv(nonAttr[0].v)}).` : "") +
+    (baseTxt ? ` Baselines that know nothing about the task: ${baseTxt}.` : ""));
   // table view
   const t = d3.select("#t6tbl");
   t.append("tr").html(`<th></th>${V.map(v => `<th>${REFS[v].short}</th>`).join("")}`);
@@ -755,12 +837,13 @@ function drawRefs() {
 
 function drawTemplates() {
   const T = tplStats, wrap = d3.select("#t5"); wrap.selectAll("*").remove();
-  const sel = state.sel, mname = METHODS.find(d => d.key === state.method).short;
+  const sel = state.sel, tm = T.cells[0].rho[state.method] !== undefined ? state.method : "attn_end";
+  const mname = METHODS.find(d => d.key === tm).short + (tm !== state.method ? " (the scatter's choice has no per-template version)" : "");
   const showO = !TASK.orders ? ["all"] : state.cond === "all" ? ["BABA", "ABBA"] : [state.cond];
   const cell = (t, o) => T.cells.find(c => c.tpl === t && c.order === o);
   const panels = [
     { key: "clean", title: `Clean ${TASK.metricShort}`, get: c => c.clean, all: byCond.all.n ? d3.mean(prompts, p => p.logit_diff) : 0, zero: true },
-    { key: "rho", title: `Agreement (ρ): ${mname}`, get: c => c.rho[state.method], all: byCond.all.rho[state.method], zero: true, max1: true },
+    { key: "rho", title: `Agreement (ρ): ${mname}`, get: c => c.rho[tm], all: byCond.all.rho[tm], zero: true, max1: true },
     { key: "nm", title: state.ref === TASK.denoise ? TASK.t5groupTitleDen : TASK.t5groupTitle, get: c => c.nm, all: groupStats.all.rows.find(r => r.key === TASK.t5group).joint, zero: true },
   ];
   if (sel != null) panels.push({ key: "head", title: `Head ${lab(sel)} patching effect`, get: c => c.truth[sel], all: byCond.all.truth[sel], zero: true });
@@ -907,13 +990,14 @@ function select(i) { state.sel = state.sel === i ? null : i; render(); }
 let lastCond = state.cond;
 function render() {
   if (state.cond !== lastCond) { if (state.cond !== "all") state.t3order = state.cond; lastCond = state.cond; }  // the global filter sets T3's order when it changes
-  stats = byCond[state.cond]; drawGrids(); drawScatter(); drawDetail(); drawAttention(); drawRefs(); drawGroups(); drawTemplates(); drawTable(); }
+  stats = byCond[state.cond]; drawGrids(); drawScatter(); drawDetail(); drawAttention(); drawMap(); drawRefs(); drawGroups(); drawTemplates(); drawTable(); }
 
 const TEXTS = {
   gt: {
     t1hint: "Layer × head grids. Rank mode colors each head by its rank of |score| within its method, in the five bands shown under each grid, so methods with different units stay comparable. “Best pair” is a head's highest attention across five positions (final token → the start year YY, its century and the noun; YY → the century and the noun). Dots mark the seven heads Hanna et al. (2023) found. Click a cell to select a head everywhere.",
     t3hint: "The selected head's attention, averaged over all prompts whose start year falls in one range (each row is a query token and sums to 100%). The noun, the start century (XX start), the start year (YY) and the final century token (XX end) are shown by role; the other words are the same in every prompt. Outlined cells are the five positions we score heads at, and the thick outline is this head's best one over all prompts. Value-weighted scales each entry by how much that token actually writes into the output (Kobayashi et al. 2020).",
     t6hint: "Activation patching is not one measurement. The two columns are noising (swap a head's output for its output on the prompt with the start year changed to XX01) and denoising (put a head's clean output back into the XX01 run). Each cell says how well the row agrees with that column, as Spearman ρ on |score| over the 144 heads (or top-10 overlap). Click a column to make it the reference for every other view. Attribution patching is a gradient estimate of the first column, so it has a built-in advantage there.",
+    maphint: "Each cell scores every head by its attention from one query token (row) to one key token (column), averaged over all prompts, and colors the cell by how well that score agrees with patching (Spearman ρ on |score| over the 144 heads) for the current patching setting. Every prompt has the same 13 tokens, so this is every pair. Outlined cells are the five positions the “best pair” score uses. Click a cell to compare that position with patching in the scatter above. Blank cells have the same attention for every head.",
     t5hint: "Prompts grouped by start year YY, about 40 per row. The vertical line is the value over all prompts. Agreement uses the method picked in the scatter above. Select a head to add its own patching effect per range. Late start years leave fewer valid end years, so the clean metric drops there.",
     t4panels: "MLPs 8–11 are patched as whole layers for comparison: Hanna et al. find they do the comparison itself, so the heads are only part of the circuit.",
   },
@@ -939,8 +1023,10 @@ function seg(id, key) {
 }
 
 applyTaskTexts();
-Promise.all([d3.json(TASK.dataUrl), TASK.listsUrl ? d3.json(TASK.listsUrl) : Promise.resolve(null), d3.json(TASK.attnUrl), d3.json(TASK.varUrl).catch(() => null)]).then(([d, lists, as, pv]) => {
+Promise.all([d3.json(TASK.dataUrl), TASK.listsUrl ? d3.json(TASK.listsUrl) : Promise.resolve(null), d3.json(TASK.attnUrl), d3.json(TASK.varUrl).catch(() => null),
+  d3.json(TASK.mapUrl).catch(() => null)]).then(([d, lists, as, pv, map]) => {
   D = d; prompts = d.prompts; TEMPLATES = lists ? lists.BABA_TEMPLATES : null;
+  D.map = map; if (map) d3.select("#map").attr("hidden", null);
   // attention at six positions (and value-weighted) comes from attention_patterns.py; same prompts, same order
   if (as.prompts.length !== prompts.length || as.prompts.some((q, i) => q.text !== prompts[i].text)) throw new Error("attn_scores.json prompts do not match the v3 file");
   prompts.forEach((p, i) => { p.attn = as.prompts[i].attn; p.vw = as.prompts[i].vw; });
@@ -959,11 +1045,13 @@ Promise.all([d3.json(TASK.dataUrl), TASK.listsUrl ? d3.json(TASK.listsUrl) : Pro
   recomputeAll();
   d3.select("#nprompts").text(TASK.orders ? `${prompts.length} prompts from ${new Set(prompts.map(p => p.tpl)).size} templates in two name orders.`
     : `${prompts.length} prompts, two for each start year from 02 to 98.`);
-  d3.select("#method").selectAll("option").data(METHODS.filter(m => m.key !== "truth")).join("option")
-    .attr("value", m => m.key).text(m => m.name);
+  refreshMethodSelect();
   d3.select("#method").on("change", function () { state.method = this.value; render(); });
   d3.select("#stage").on("change", function () { state.stage = this.value; render(); });
   seg("cond", "cond"); seg("colormode", "colormode"); seg("t6metric", "t6metric");
+  d3.selectAll("#mapmode button").on("click", function () { state.mapMode = this.dataset.v;
+    d3.selectAll("#mapmode button").attr("aria-pressed", function () { return this.dataset.v === state.mapMode; });
+    if (state.mapCell) chooseCell(...state.mapCell); else { recomputeAll(); render(); } });
   if (TASK.orders) d3.select("#t3tpl").selectAll("option").data(d3.range(TEMPLATES.length)).join("option").attr("value", d => d)
     .text(d => { const t = tplShort(TEMPLATES[d]); return `T${d + 1}: ${t.length > 50 ? t.slice(0, 49) + "…" : t}`; });
   else d3.select("#t3tpl").selectAll("option").data(d3.range(D.buckets.length)).join("option").attr("value", d => d)
@@ -973,7 +1061,7 @@ Promise.all([d3.json(TASK.dataUrl), TASK.listsUrl ? d3.json(TASK.listsUrl) : Pro
   d3.selectAll("#t3mode button").on("click", function () { state.t3mode = this.dataset.v;
     d3.selectAll("#t3mode button").attr("aria-pressed", function () { return this.dataset.v === state.t3mode; }); drawAttention(); });
   render();
-  addEventListener("resize", () => { drawScatter(); drawAttention(); drawRefs(); drawGroups(); drawTemplates(); });
+  addEventListener("resize", () => { drawScatter(); drawAttention(); drawMap(); drawRefs(); drawGroups(); drawTemplates(); });
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
 }).catch(e => d3.select("#err").text(`Could not load ${TASK.dataUrl}. Serve the repo root with "python3 -m http.server" and open /frontend/. (${e})`));
 </script>

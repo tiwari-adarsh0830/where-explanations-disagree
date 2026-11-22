@@ -15,8 +15,9 @@ Then go to http://localhost:8000/frontend/ (or http://localhost:8000/frontend/?t
 What's there so far:
 
 - **Grids:** one layer by head grid per method (attention at the final token, attention at its best position, DLA, attribution patching, activation patching), colored by rank or by signed value.
-- **Rank scatter:** any method's rank against patching rank, so heads far from the diagonal are the ones the method gets wrong. Value-weighted attention is also available here.
+- **Rank scatter:** any method's rank against patching rank, so heads far from the diagonal are the ones the method gets wrong. Value-weighted attention and two baselines (layer number, head activity) are also available here, and the readout always shows the baselines for scale.
 - **Where a head looks:** the selected head's full token by token attention for any template and name order, raw or value-weighted, with the six scored positions outlined.
+- **Where attention should be read:** a map of how well attention at every query/key position agrees with patching (IOI positions by role, greater-than every token pair). Click a cell to put that position in the rank scatter. Reads `../results/attn_map.json` (or `../results/gt/attn_map.json`).
 - **How you patch:** a matrix of how well each method and each patching setting agrees with each patching setting. Click a column, or use the Patching setting menu in the toolbar, to make that setting the reference for every other view.
 - **Group knockouts:** knocking out the name movers, the backups or both at once, next to what adding up single heads would predict, split by name order.
 - **Per template:** clean logit difference, agreement with patching, the name-mover knockout and the selected head's effect for each of the 15 templates, BABA next to ABBA.

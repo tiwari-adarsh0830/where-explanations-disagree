@@ -1,0 +1,118 @@
+{
+ "ioi": {
+  "noise_abc": {
+   "layer": {
+    "spearman": 0.222,
+    "spearman_ci95": [
+     0.145,
+     0.278
+    ]
+   },
+   "activity": {
+    "spearman": 0.097,
+    "spearman_ci95": [
+     0.052,
+     0.16
+    ]
+   }
+  },
+  "denoise_abc": {
+   "layer": {
+    "spearman": 0.383,
+    "spearman_ci95": [
+     0.276,
+     0.448
+    ]
+   },
+   "activity": {
+    "spearman": 0.222,
+    "spearman_ci95": [
+     0.109,
+     0.291
+    ]
+   }
+  },
+  "noise_flip": {
+   "layer": {
+    "spearman": 0.469,
+    "spearman_ci95": [
+     0.391,
+     0.481
+    ]
+   },
+   "activity": {
+    "spearman": -0.062,
+    "spearman_ci95": [
+     -0.091,
+     0.008
+    ]
+   }
+  },
+  "noise_mean": {
+   "layer": {
+    "spearman": 0.115,
+    "spearman_ci95": [
+     0.063,
+     0.206
+    ]
+   },
+   "activity": {
+    "spearman": 0.128,
+    "spearman_ci95": [
+     0.075,
+     0.189
+    ]
+   }
+  },
+  "noise_abc_end": {
+   "layer": {
+    "spearman": 0.755,
+    "spearman_ci95": [
+     0.663,
+     0.757
+    ]
+   },
+   "activity": {
+    "spearman": -0.146,
+    "spearman_ci95": [
+     -0.151,
+     -0.061
+    ]
+   }
+  }
+ },
+ "gt": {
+  "noise_01": {
+   "layer": {
+    "spearman": -0.195,
+    "spearman_ci95": [
+     -0.23,
+     -0.162
+    ]
+   },
+   "activity": {
+    "spearman": 0.427,
+    "spearman_ci95": [
+     0.394,
+     0.45
+    ]
+   }
+  },
+  "denoise_01": {
+   "layer": {
+    "spearman": -0.202,
+    "spearman_ci95": [
+     -0.223,
+     -0.166
+    ]
+   },
+   "activity": {
+    "spearman": 0.388,
+    "spearman_ci95": [
+     0.354,
+     0.404
+    ]
+   }
+  }
+ }
+}

@@ -9,7 +9,7 @@ Explanation methods for language models don't always agree. Attention maps, logi
 
 We're starting with GPT-2 small on the indirect object identification (IOI) task. Wang et al. (2023) already mapped the circuit GPT-2 uses for it, so we have something to compare against.
 
-**Status:** in progress. The proposal was approved in October and the project update went in on Nov 3. Pipeline v3 and the analysis are done, we've rerun patching under five different settings, and the D3 tool has six working views. The second task (greater-than) is in too, and the tool switches between the two tasks.
+**Status:** in progress. The proposal was approved in October and the project update went in on Nov 3. Pipeline v3 and the analysis are done, we've rerun patching under five different settings, and the D3 tool has seven working views. The second task (greater-than) is in too, and the tool switches between the two tasks.
 
 ## What's in here
 
@@ -43,6 +43,8 @@ python pipeline/patching_variants.py data/ioi_lists.json results
 python pipeline/analysis_variants.py results/patching_variants_per_prompt.json results/ioi_v3_results_per_prompt.json results/attn_scores.json results/analysis_variants.json
 python pipeline/gt_check.py data/gt_nouns.txt results/gt
 python pipeline/analysis_gt.py results/gt results/analysis_gt.json
+python pipeline/attention_map.py data/ioi_lists.json results
+python pipeline/analysis_baselines.py results results/analysis_baselines.json
 ```
 
 GPT-2 small downloads from Hugging Face the first time. The pipeline takes about 4.5 minutes on a MacBook CPU (about 19 on a 2 core cloud machine) because patching every head one at a time is slow. The analysis takes a few seconds. `attention_patterns.py` only runs forward passes (under a minute) and saves each head's attention patterns for the D3 tool, plus attention at a sixth position (the token after S1 looking back at S1, where previous-token heads act) and a value-weighted version of attention. v3's averages match v2 exactly, so the proposal numbers still hold. `patching_variants.py` batches the 12 heads of a layer together and takes about half an hour on the cloud machine; it checks that its first setting reproduces v3's patching numbers.
@@ -74,6 +76,12 @@ To check whether any of this is specific to IOI, `gt_check.py` runs the same fiv
 - Here plain attention (final token to the start year) does well at the top: its top 10 contains all seven circuit heads and overlaps patching's top 10 in 8 of 10. Reading attention at the "best" position makes it worse (5 of 10), the opposite of IOI. In this task every circuit head acts from the final token, so there's one natural place to look.
 - Logit attribution is the weakest method (Spearman 0.31, ranks 5.5 99th and 5.1 85th), which fits Hanna et al.'s account that those heads work through MLPs 8 to 11, not directly on the output.
 - Noising and denoising agree on 9 of their top 10 heads (in IOI it was 4 of 10), and knocking out both head groups is only 1.25 times the two groups separately (4.1 in IOI). Less backup behavior to confuse the two settings.
+
+## Two checks on our own numbers (Nov 21)
+
+**Baselines.** A score that just says "later heads matter more" already agrees with patching. Scoring each head by its layer number gets Spearman 0.22 against our main patching setup in IOI (higher than final-token attention, 0.17), 0.47 against the name-flip setup, and 0.76 against final-position patching, where it beats every method. In greater-than, layer number is negative (-0.20), but "how much of the final token's attention a head spends anywhere except the first token" gets 0.43, as much as our best attention score. Every agreement number should be read against these (`results/analysis_baselines.json`, from `pipeline/analysis_baselines.py`).
+
+**Is "best position" just selection?** `pipeline/attention_map.py` scores attention at every query/key position (IOI positions aligned by role, greater-than all 13 x 13 token pairs) and tests position choices on held-out data (`results/analysis_attn_map.json`). In IOI no single position beats 0.26, our hand-picked six reach 0.52 on held-out templates (0.54 on all), and taking each head's max over every position drops to 0.17, so the gain comes from picking the right positions, not from having more of them. Picking positions from the data does about as well (0.50 held out with six). In greater-than the data-picked pair (final token to the start year and to the first "year") beats our hand-picked five on held-out prompts, 0.58 against 0.44.
 
 ## Main references
 
