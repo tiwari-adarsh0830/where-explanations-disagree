@@ -48,6 +48,7 @@ h2 { font-size: 15px; margin: 0 0 2px; font-weight: 600; }
 @media (max-width: 600px) { .controls { position: static; } }
 .ctl { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-2); }
 .ctl[hidden] { display: none; }
+.t6controls { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 10px; }
 .seg { display: inline-flex; border: 1px solid var(--axis); border-radius: 8px; overflow: hidden; }
 .seg button { font: inherit; font-size: 13px; color: var(--ink); background: var(--surface); border: 0; padding: 6px 12px; cursor: pointer; }
 .seg button + button { border-left: 1px solid var(--axis); }
@@ -120,11 +121,16 @@ details summary { cursor: pointer; font-weight: 600; }
 <body>
 <main>
   <h1>Where Explanations Disagree</h1>
-  <p class="sub">GPT-2 small on indirect object identification (IOI). Four ways of scoring the 144 attention heads, compared with activation patching: <span id="refdesc">the drop in logit(IO) − logit(S) when a head's output is replaced by its output on a corrupted prompt with three fresh names</span>. <span id="nprompts"></span></p>
+  <p class="sub"><span id="intro">GPT-2 small on indirect object identification (IOI).</span> Four ways of scoring the 144 attention heads, compared with activation patching: <span id="refdesc">the drop in logit(IO) − logit(S) when a head's output is replaced by its output on a corrupted prompt with three fresh names</span>. <span id="nprompts"></span></p>
   <p id="err"></p>
 
   <div class="controls" role="toolbar" aria-label="Filters">
-    <div class="ctl">Name order
+    <div class="ctl">Task
+      <div class="seg" id="task">
+        <button data-v="ioi" aria-pressed="true">IOI</button><button data-v="gt" aria-pressed="false">Greater-than</button>
+      </div>
+    </div>
+    <div class="ctl" id="condctl">Name order
       <div class="seg" id="cond">
         <button data-v="all" aria-pressed="true">Pooled</button><button data-v="BABA" aria-pressed="false">BABA</button><button data-v="ABBA" aria-pressed="false">ABBA</button>
       </div>
@@ -138,19 +144,13 @@ details summary { cursor: pointer; font-weight: 600; }
       <select id="ref"></select>
     </div>
     <div class="ctl"><label for="stage">Circuit heads</label>
-      <select id="stage">
-        <option value="all">Mark all circuit heads</option>
-        <option value="early">Early: duplicate, previous token, induction</option>
-        <option value="middle">Middle: S-inhibition</option>
-        <option value="late">Late: name movers, negative, backup</option>
-        <option value="none">Don't mark</option>
-      </select>
+      <select id="stage"></select>
     </div>
   </div>
 
   <section class="card">
     <h2>Where does each method put importance?</h2>
-    <p class="hint">Layer × head grids. Rank mode colors each head by its rank of |score| within its method, in the five bands shown under each grid, so methods with different units stay comparable. "Best pair" is a head's highest attention across six IOI positions (final token → IO, S1, S2; S2 → S1 and the token after S1; the token after S1 → S1), so it uses knowledge of where the names are. Dots mark heads from the Wang et al. (2023) circuit. Click a cell to select a head everywhere.</p>
+    <p class="hint" id="t1hint">Layer × head grids. Rank mode colors each head by its rank of |score| within its method, in the five bands shown under each grid, so methods with different units stay comparable. "Best pair" is a head's highest attention across six IOI positions (final token → IO, S1, S2; S2 → S1 and the token after S1; the token after S1 → S1), so it uses knowledge of where the names are. Dots mark heads from the Wang et al. (2023) circuit. Click a cell to select a head everywhere.</p>
     <div class="grids" id="grids"></div>
   </section>
 
@@ -175,10 +175,10 @@ details summary { cursor: pointer; font-weight: 600; }
 
   <section class="card" id="attention">
     <h2>Where does the selected head look?</h2>
-    <p class="hint">The selected head's attention, averaged over the 4 prompts of one template and name order (each row is a query token and sums to 100%). Names are shown by role: S1 and S2 are the two mentions of the subject, IO is the right answer. Other words come from one example prompt; places and objects vary between the 4. Outlined cells are the six positions we score heads at, and the thick outline is this head's best one over all prompts. Value-weighted scales each entry by how much that token actually writes into the output (Kobayashi et al. 2020).</p>
+    <p class="hint" id="t3hint">The selected head's attention, averaged over the 4 prompts of one template and name order (each row is a query token and sums to 100%). Names are shown by role: S1 and S2 are the two mentions of the subject, IO is the right answer. Other words come from one example prompt; places and objects vary between the 4. Outlined cells are the six positions we score heads at, and the thick outline is this head's best one over all prompts. Value-weighted scales each entry by how much that token actually writes into the output (Kobayashi et al. 2020).</p>
     <div class="t3controls">
-      <div class="ctl"><label for="t3tpl">Template</label><select id="t3tpl"></select></div>
-      <div class="ctl">Name order
+      <div class="ctl"><label for="t3tpl" id="t3tpllabel">Template</label><select id="t3tpl"></select></div>
+      <div class="ctl" id="t3orderctl">Name order
         <div class="seg" id="t3order"><button data-v="BABA" aria-pressed="true">BABA</button><button data-v="ABBA" aria-pressed="false">ABBA</button></div>
       </div>
       <div class="ctl">Weighting
@@ -193,8 +193,8 @@ details summary { cursor: pointer; font-weight: 600; }
 
   <section class="card" id="refs" hidden>
     <h2>Does the answer depend on how you patch?</h2>
-    <p class="hint">Activation patching is not one measurement. Each column is a different way of doing it: noising (swap a head's output for its output on a corrupted prompt) or denoising (put a head's clean output back into a corrupted run), with three-new-names (ABC) corruption, a name flip, or the average over corrupted prompts, at all positions or the final token only. Each cell says how well the row agrees with that column, as Spearman ρ on |score| over the 144 heads (or top-10 overlap), for the prompts in the Name order filter. Click a column to make it the reference for every other view. Attribution patching is a gradient estimate of the first column, so it has a built-in advantage there.</p>
-    <div class="controls" style="margin:0 0 10px;padding:0;border:0;background:none">
+    <p class="hint" id="t6hint">Activation patching is not one measurement. Each column is a different way of doing it: noising (swap a head's output for its output on a corrupted prompt) or denoising (put a head's clean output back into a corrupted run), with three-new-names (ABC) corruption, a name flip, or the average over corrupted prompts, at all positions or the final token only. Each cell says how well the row agrees with that column, as Spearman ρ on |score| over the 144 heads (or top-10 overlap), for the prompts in the Name order filter. Click a column to make it the reference for every other view. Attribution patching is a gradient estimate of the first column, so it has a built-in advantage there.</p>
+    <div class="t6controls">
       <div class="ctl">Show
         <div class="seg" id="t6metric">
           <button data-v="rho" aria-pressed="true">Spearman ρ</button><button data-v="top" aria-pressed="false">Top-10 overlap</button>
@@ -212,23 +212,23 @@ details summary { cursor: pointer; font-weight: 600; }
 
   <section class="card" id="groups">
     <h2>Do groups of heads behave like their parts?</h2>
-    <p class="hint"><span id="t4what">Each bar is the drop in logit(IO) − logit(S) when a whole group of heads is patched with its corrupted output at the same time</span>, with a 95% bootstrap interval over prompts. The tick is what you would predict by adding up the effects of patching each head on its own. <span id="t4sign">A positive value means the model gets worse at the task.</span> The three panels split the prompts by name order; the one matching the Name order filter is outlined.</p>
+    <p class="hint"><span id="t4what">Each bar is the drop in logit(IO) − logit(S) when a whole group of heads is patched with its corrupted output at the same time</span>, with a 95% bootstrap interval over prompts. The tick is what you would predict by adding up the effects of patching each head on its own. <span id="t4sign">A positive value means the model gets worse at the task.</span> <span id="t4panels">The three panels split the prompts by name order; the one matching the Name order filter is outlined.</span></p>
     <div class="t4legend" id="t4legend"></div>
     <div class="t4" id="t4"></div>
     <p class="t4note" id="t4note"></p>
     <details style="margin-top:10px">
-      <summary>Table view (group knockouts)</summary>
+      <summary>Table view (group effects)</summary>
       <div class="tablewrap"><table id="t4tbl"></table></div>
     </details>
   </section>
 
   <section class="card" id="templates">
-    <h2>Does it hold across sentence templates?</h2>
-    <p class="hint">One row per IOI template, with 4 prompts in each name order (S = repeated subject, IO = indirect object, the right answer). Filled dots are BABA prompts, hollow dots ABBA, joined so the gap between orders is easy to see. The vertical line is the value over all 120 prompts. Agreement uses the method picked in the scatter above. Select a head to add its own patching effect per template. With 4 prompts per dot, single dots are noisy: look for patterns across rows.</p>
+    <h2 id="t5title">Does it hold across sentence templates?</h2>
+    <p class="hint" id="t5hint">One row per IOI template, with 4 prompts in each name order (S = repeated subject, IO = indirect object, the right answer). Filled dots are BABA prompts, hollow dots ABBA, joined so the gap between orders is easy to see. The vertical line is the value over all 120 prompts. Agreement uses the method picked in the scatter above. Select a head to add its own patching effect per template. With 4 prompts per dot, single dots are noisy: look for patterns across rows.</p>
     <div class="t5legend" id="t5legend"></div>
     <div class="t5wrap"><div id="t5"></div></div>
     <details style="margin-top:10px">
-      <summary>Table view (per template)</summary>
+      <summary id="t5sum">Table view (per template)</summary>
       <div class="tablewrap"><table id="t5tbl"></table></div>
     </details>
   </section>
@@ -245,11 +245,7 @@ details summary { cursor: pointer; font-weight: 600; }
 
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script>
-const DATA_URL = "../results/ioi_v3_results_per_prompt.json";
-const ATTN_URL = "../results/attn_scores.json";
-const VAR_URL = "../results/patching_variants_per_prompt.json";
-// patching settings (pipeline/patching_variants.py); "noise_abc" is the v3 reference
-const REFS = {
+const REFS_IOI = {
   noise_abc: { name: "Noising, ABC corruption (default)", short: "noising, ABC",
     desc: "the drop in logit(IO) − logit(S) when a head's output is replaced by its output on a corrupted prompt with three fresh names" },
   denoise_abc: { name: "Denoising, ABC corruption", short: "denoising, ABC",
@@ -261,18 +257,82 @@ const REFS = {
   noise_abc_end: { name: "Noising, ABC, final position only", short: "noising, final position",
     desc: "the drop in logit(IO) − logit(S) when a head's output is replaced by its corrupted output at the final token only, so heads that act earlier in the sentence drop out" },
 };
+// ---------- tasks: everything task-specific lives here; the page picks one from ?task= ----------
+const TASKS = {
+  ioi: {
+    dataUrl: "../results/ioi_v3_results_per_prompt.json", attnUrl: "../results/attn_scores.json",
+    varUrl: "../results/patching_variants_per_prompt.json", attnDir: "../results/attn/", listsUrl: "../data/ioi_lists.json",
+    intro: "GPT-2 small on indirect object identification (IOI).",
+    metricExpr: "logit(IO) − logit(S)", metricShort: "logit difference", circuit: "the IOI circuit",
+    orders: true, defaultRef: "noise_abc", denoise: "denoise_abc",
+    // which corrupted prompt each setting uses (mean ablation has no single corrupted prompt)
+    corruptKey: { noise_abc: "abc", denoise_abc: "abc", noise_flip: "flip", noise_abc_end: "abc" },
+    // patching settings (pipeline/patching_variants.py); "noise_abc" is the v3 reference
+    refs: REFS_IOI,
+    roleName: { name_movers: "name mover", negative_nm: "negative name mover", s_inhibition: "S-inhibition",
+      induction: "induction", duplicate: "duplicate token", backup_nm: "backup name mover", previous_token: "previous token" },
+    stageOf: { duplicate: "early", previous_token: "early", induction: "early", s_inhibition: "middle",
+      name_movers: "late", negative_nm: "late", backup_nm: "late" },
+    stageName: { early: "Early (duplicate, previous token, induction)", middle: "Middle (S-inhibition)", late: "Late (name movers, negative, backup)" },
+    stageOptions: [["early", "Early: duplicate, previous token, induction"], ["middle", "Middle: S-inhibition"], ["late", "Late: name movers, negative, backup"]],
+    extraRoles: { "2.2": "previous_token", "4.11": "previous_token" },   // Wang et al. 2023, not in the pipeline's role list
+    pairName: { "end>io": "final → IO", "end>s1": "final → S1", "end>s2": "final → S2", "s2>s1": "S2 → S1", "s2>s1+1": "S2 → token after S1", "s1+1>s1": "token after S1 → S1" },
+    attnEnd: { name: "Attention, final token → IO", short: "Attn (final→IO)" }, endTarget: "IO",
+    groups: [{ key: "name_movers", name: "Name movers", role: "name_movers" }, { key: "backups", name: "Backup name movers", role: "backup_nm" }],
+    extraGroups: [],
+    t5group: "name_movers", t5groupTitle: "Name-mover knockout effect", t5groupTitleDen: "Name movers restored",
+    t5title: "Does it hold across sentence templates?", t5sum: "Table view (per template)",
+    t3label: "Template",
+    roleLabels: meta => meta.toks.map((t, k) => k === meta.io_pos ? "IO" : k === meta.s1_pos ? "S1" : k === meta.s2_pos ? "S2"
+      : t === "<|endoftext|>" ? "BOS" : t.trim() || "·"),
+    rolePos: meta => [meta.io_pos, meta.s1_pos, meta.s2_pos],
+    marked: meta => { const end = meta.toks.length - 1, io = meta.io_pos, s1 = meta.s1_pos, s2 = meta.s2_pos;
+      return [["end>io", end, io], ["end>s1", end, s1], ["end>s2", end, s2], ["s2>s1", s2, s1], ["s2>s1+1", s2, s1 + 1], ["s1+1>s1", s1 + 1, s1]]; },
+    endKey: meta => meta.io_pos,
+  },
+  gt: {
+    dataUrl: "../results/gt/per_prompt.json", attnUrl: "../results/gt/attn_scores.json",
+    varUrl: "../results/gt/patching_variants_per_prompt.json", attnDir: "../results/gt/attn/", listsUrl: null,
+    intro: "GPT-2 small on greater-than (Hanna et al. 2023): after “The war lasted from the year 1732 to the year 17” it should prefer end years after 32.",
+    metricExpr: "p(year > YY) − p(year ≤ YY)", metricShort: "probability difference", circuit: "the greater-than circuit",
+    orders: false, defaultRef: "noise_01", denoise: "denoise_01",
+    corruptKey: { noise_01: "01", denoise_01: "01" },
+    refs: {
+      noise_01: { name: "Noising, “01” corruption (default)", short: "noising, 01",
+        desc: "the drop in p(year > YY) − p(year ≤ YY) when a head's output is replaced by its output on the same prompt with the start year changed to XX01" },
+      denoise_01: { name: "Denoising, “01” corruption", short: "denoising, 01",
+        desc: "how much of p(year > YY) − p(year ≤ YY) comes back when a head's clean output is put into a run on the “01” prompt (a positive value means the head is enough on its own to restore some of the answer)" },
+    },
+    roleName: { yy_heads_early: "year head, layers 5–7", yy_heads_late: "year head, layers 8–9" },
+    stageOf: { yy_heads_early: "early", yy_heads_late: "late" },
+    stageName: { early: "Year heads, layers 5–7 (5.1, 5.5, 6.9, 7.10)", late: "Year heads, layers 8–9 (8.8, 8.11, 9.1)" },
+    stageOptions: [["early", "Year heads, layers 5–7"], ["late", "Year heads, layers 8–9"]],
+    extraRoles: {},
+    pairName: { "end>yy": "final → YY", "end>xx1": "final → century", "end>noun": "final → noun", "yy>xx1": "YY → century", "yy>noun": "YY → noun" },
+    attnEnd: { name: "Attention, final token → YY", short: "Attn (final→YY)" }, endTarget: "YY",
+    groups: [{ key: "early_heads", name: "Year heads, layers 5–7", role: "yy_heads_early" }, { key: "late_heads", name: "Year heads, layers 8–9", role: "yy_heads_late" }],
+    extraGroups: [{ key: "mlps_8_11", name: "MLPs 8–11", sub: "4 MLP layers" }],
+    t5group: "both", t5groupTitle: "Both head groups knocked out", t5groupTitleDen: "Both head groups restored",
+    t5title: "Does it hold across start years?", t5sum: "Table view (per start year)",
+    t3label: "Start year",
+    roleLabels: meta => meta.toks.map((t, k) => k === meta.pos.yy ? "YY" : k === meta.pos.xx1 ? "XX start" : k === meta.pos.end ? "XX end"
+      : k === meta.pos.noun ? "NOUN" : t === "<|endoftext|>" ? "BOS" : t.trim() || "·"),
+    rolePos: meta => [meta.pos.yy, meta.pos.xx1, meta.pos.noun, meta.pos.end],
+    marked: meta => { const p = meta.pos;
+      return [["end>yy", p.end, p.yy], ["end>xx1", p.end, p.xx1], ["end>noun", p.end, p.noun], ["yy>xx1", p.yy, p.xx1], ["yy>noun", p.yy, p.noun]]; },
+    endKey: meta => meta.pos.yy,
+  },
+};
+const TASK_KEY = new URLSearchParams(location.search).get("task") === "gt" ? "gt" : "ioi";
+const TASK = TASKS[TASK_KEY];
+const REFS = TASK.refs;
 let ATTN_GROUPS = null;
 const L = 12, H = 12, NH = 144;
 const lab = i => `${Math.floor(i / H)}.${i % H}`;
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-const ROLE_NAME = { name_movers: "name mover", negative_nm: "negative name mover", s_inhibition: "S-inhibition",
-  induction: "induction", duplicate: "duplicate token", backup_nm: "backup name mover", previous_token: "previous token" };
-const STAGE_OF = { duplicate: "early", previous_token: "early", induction: "early", s_inhibition: "middle",
-  name_movers: "late", negative_nm: "late", backup_nm: "late" };
-const STAGE_NAME = { early: "Early (duplicate, previous token, induction)", middle: "Middle (S-inhibition)", late: "Late (name movers, negative, backup)" };
-const PAIR_NAME = { "end>io": "final → IO", "end>s1": "final → S1", "end>s2": "final → S2", "s2>s1": "S2 → S1", "s2>s1+1": "S2 → token after S1", "s1+1>s1": "token after S1 → S1" };
+const ROLE_NAME = TASK.roleName, STAGE_OF = TASK.stageOf, STAGE_NAME = TASK.stageName, PAIR_NAME = TASK.pairName;
 const METHODS = [
-  { key: "attn_end", name: "Attention, final token → IO", short: "Attn (final→IO)" },
+  { key: "attn_end", name: TASK.attnEnd.name, short: TASK.attnEnd.short },
   { key: "attn_best", name: "Attention, best query → key pair", short: "Attn (best pair)" },
   { key: "vw_best", name: "Value-weighted attention, best pair", short: "VW attn (best pair)", grid: false },
   { key: "dla", name: "Direct logit attribution", short: "DLA" },
@@ -344,7 +404,7 @@ function showTip(ev, html) {
 }
 const hideTip = () => tip.style("opacity", 0);
 const fmt = d3.format("+.3f"), fmt2 = d3.format(".2f");
-const roleText = i => role[i] ? `${ROLE_NAME[role[i]]} · ${STAGE_OF[role[i]]} stage` : "not in the IOI circuit";
+const roleText = i => role[i] ? `${ROLE_NAME[role[i]]} · ${STAGE_OF[role[i]]} stage` : `not in ${TASK.circuit}`;
 const marked = i => role[i] && (state.stage === "all" || STAGE_OF[role[i]] === state.stage);
 
 // ---------- T1 grids ----------
@@ -443,7 +503,7 @@ function drawScatter() {
     .on("click", ev => { const [px, py] = d3.pointer(ev); const i = del.find(px, py);
       if (Math.hypot(x(xr[i]) - px, y(yr[i]) - py) <= 24) select(i); });
   d3.select("#stat").html(`Spearman ρ on |score| = <b>${d3.format(".3f")(stats.rho[state.method])}</b> · top-10 overlap <b>${stats.top[state.method]}</b>/10 · ${stats.n} prompts`);
-  d3.select("#keys").html(["early", "middle", "late"].map(s => `<span><i class="sw" style="background:var(--${s})"></i>${STAGE_NAME[s]}</span>`).join("") +
+  d3.select("#keys").html(Object.keys(STAGE_NAME).map(s => `<span><i class="sw" style="background:var(--${s})"></i>${STAGE_NAME[s]}</span>`).join("") +
     `<span><i class="sw" style="background:var(--other)"></i>Other heads</span>`);
 }
 
@@ -453,7 +513,7 @@ function drawDetail() {
   d3.select("#dempty").style("display", i == null ? null : "none");
   if (i == null) { d3.select("#dtitle").text("Selected head"); return; }
   d3.select("#dtitle").text(`Head ${lab(i)}`);
-  body.append("p").attr("class", "hint").text(`${roleText(i)} · ${stats.n} prompts (${state.cond === "all" ? "pooled" : state.cond})`);
+  body.append("p").attr("class", "hint").text(`${roleText(i)} · ${stats.n} prompts (${!TASK.orders ? "all" : state.cond === "all" ? "pooled" : state.cond})`);
   const t = body.append("table");
   t.append("tr").html("<th>Method</th><th>Score</th><th>Rank</th>");
   for (const m of METHODS) t.append("tr").html(`<td>${m.short}</td><td>${fmt(stats[m.key][i])}</td><td>${stats.rank[m.key][i]}</td>`);
@@ -467,6 +527,7 @@ function drawDetail() {
     svg.append("rect").attr("x", x(0)).attr("y", yy + 5).attr("width", Math.max(0, x(v) - x(0))).attr("height", 12).attr("rx", 2).attr("fill", "var(--early)");
     svg.append("text").attr("x", x(1) + 6).attr("y", yy + 14).style("fill", "var(--ink)").text(fmt2(v));
   });
+  if (!TASK.orders) return;
   body.append("h2").style("margin-top", "12px").text("Activation patching by name order");
   const t2 = body.append("table"); t2.append("tr").html("<th>Order</th><th>Patching</th><th>Rank</th>");
   for (const c of ["all", "BABA", "ABBA"]) { const s = byCond[c];
@@ -491,7 +552,7 @@ function drawTable() {
 }
 
 // ---------- T4: group knockouts ----------
-const CONDS = [["all", "Pooled"], ["BABA", "BABA"], ["ABBA", "ABBA"]];
+const CONDS = TASK.orders ? [["all", "Pooled"], ["BABA", "BABA"], ["ABBA", "ABBA"]] : [["all", "All prompts"]];
 let groupStats = null;
 function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
   t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -502,34 +563,34 @@ function bootCI(vals, reps = 1000, seed = 7) {  // 95% percentile interval of th
 }
 function computeGroups() {
   const idx = s => { const [l, h] = s.split(".").map(Number); return l * H + h; };
-  const nm = D.roles.name_movers.map(idx), bk = D.roles.backup_nm.map(idx);
-  const defs = [
-    { key: "name_movers", name: "Name movers", heads: nm },
-    { key: "backups", name: "Backup name movers", heads: bk },
-    { key: "both", name: "Both groups", heads: [...nm, ...bk] },
-  ];
+  const two = TASK.groups.map(g => ({ key: g.key, name: g.name, heads: (D.roles[g.role] || []).map(idx) }));
+  const defs = [...two, { key: "both", name: "Both groups", heads: two.flatMap(g => g.heads) },
+    ...TASK.extraGroups.map(g => ({ key: g.key, name: g.name, heads: [], sub: g.sub, noSingles: true }))];
   const out = {};
   for (const [c] of CONDS) {
     const ps = c === "all" ? prompts : prompts.filter(p => p.order === c), s = byCond[c];
     const rows = defs.map((g, gi) => {
       const vals = ps.map(p => p.group_drop[g.key]);
-      return { ...g, joint: d3.mean(vals), ci: bootCI(vals, 1000, 11 + gi), sumSingles: d3.sum(g.heads, i => s.truth[i]) };
+      return { ...g, joint: d3.mean(vals), ci: bootCI(vals, 1000, 11 + gi), sumSingles: g.noSingles ? null : d3.sum(g.heads, i => s.truth[i]) };
     });
-    rows[2].sumGroups = rows[0].joint + rows[1].joint;   // name movers and backups knocked out as two separate groups
-    out[c] = { n: ps.length, clean: d3.mean(ps, p => p.logit_diff), rows };
+    rows[2].sumGroups = rows[0].joint + rows[1].joint;   // the two head groups knocked out separately, added
+    const ck = TASK.corruptKey[state.ref];
+    out[c] = { n: ps.length, clean: d3.mean(ps, p => p.logit_diff), rows,
+      corrupt: ck && ps.length && ps[0].ldAll && ps[0].ldAll[ck] != null ? d3.mean(ps, p => p.ldAll[ck]) : null };
   }
   return out;
 }
 function drawGroups() {
   const G = groupStats, wrap = d3.select("#t4"); wrap.selectAll("*").remove();
-  const all = CONDS.flatMap(([c]) => G[c].rows.flatMap(r => [r.ci[0], r.ci[1], r.sumSingles, r.sumGroups ?? 0]));
+  const all = CONDS.flatMap(([c]) => G[c].rows.flatMap(r => [r.ci[0], r.ci[1], r.sumSingles ?? 0, r.sumGroups ?? 0]));
   const lo = Math.min(0, d3.min(all)), hi = d3.max(all);
   const sel = state.sel, selRole = sel != null ? role[sel] : null;
   // create all three panels first so each one's width is known before its chart is drawn
   const panels = CONDS.map(([c, cname]) => {
     const panel = wrap.append("div").attr("class", "panel" + (c === state.cond ? " active" : ""));
     panel.append("h3").text(cname);
-    panel.append("p").attr("class", "clean").text(`${G[c].n} prompts · clean logit difference ${fmt2(G[c].clean)}`);
+    panel.append("p").attr("class", "clean").text(`${G[c].n} prompts · clean ${TASK.metricShort} ${fmt2(G[c].clean)}` +
+      (G[c].corrupt != null ? ` · on the corrupted prompt ${d3.format(".2f")(G[c].corrupt).replace("-", "−")}` : ""));
     return panel;
   });
   const widths = panels.map(pn => pn.node().clientWidth);
@@ -547,12 +608,12 @@ function drawGroups() {
     g.rows.forEach((r, k) => {
       const yc = m.t + k * rowH + rowH / 2, row = svg.append("g").style("cursor", "default");
       row.append("text").attr("x", m.l - 8).attr("y", yc - 2).attr("text-anchor", "end").style("fill", "var(--ink)").text(r.name);
-      row.append("text").attr("x", m.l - 8).attr("y", yc + 11).attr("text-anchor", "end").text(`${r.heads.length} heads`);
+      row.append("text").attr("x", m.l - 8).attr("y", yc + 11).attr("text-anchor", "end").text(r.sub || `${r.heads.length} heads`);
       const x0 = Math.min(x(0), x(r.joint)), bw = Math.abs(x(r.joint) - x(0));
       row.append("rect").attr("x", x0).attr("y", yc - 9).attr("width", Math.max(bw, 1)).attr("height", 18).attr("rx", 3).attr("fill", "var(--ink-2)").attr("opacity", 0.75);
       row.append("line").attr("x1", x(r.ci[0])).attr("x2", x(r.ci[1])).attr("y1", yc).attr("y2", yc).attr("stroke", "var(--ink)").attr("stroke-width", 1.5);
       for (const v of r.ci) row.append("line").attr("x1", x(v)).attr("x2", x(v)).attr("y1", yc - 4).attr("y2", yc + 4).attr("stroke", "var(--ink)").attr("stroke-width", 1.5);
-      row.append("line").attr("x1", x(r.sumSingles)).attr("x2", x(r.sumSingles)).attr("y1", yc - 14).attr("y2", yc + 14)
+      if (r.sumSingles != null) row.append("line").attr("x1", x(r.sumSingles)).attr("x2", x(r.sumSingles)).attr("y1", yc - 14).attr("y2", yc + 14)
         .attr("stroke", "var(--ink)").attr("stroke-width", 2.5).attr("stroke-linecap", "round");
       // selected head's own effect goes under the diamond so the diamond is never hidden
       if (sel != null && r.heads.includes(sel)) row.append("circle").attr("cx", x(byCond[c].truth[sel])).attr("cy", yc).attr("r", 5)
@@ -561,32 +622,39 @@ function drawGroups() {
         .attr("transform", `translate(${x(r.sumGroups)},${yc})`).attr("fill", "var(--surface)").attr("stroke", "var(--ink)").attr("stroke-width", 1.5);
       row.append("rect").attr("x", m.l).attr("y", yc - rowH / 2).attr("width", W - m.l - m.r).attr("height", rowH).attr("fill", "transparent")
         .on("mousemove", ev => showTip(ev, `<b>${r.name}</b> <span class="muted">${cname}, ${g.n} prompts</span><br>` +
-          `Knocked out together: <b>${fmt(r.joint)}</b> <span class="muted">[${fmt2(r.ci[0])}, ${fmt2(r.ci[1])}]</span><br>` +
-          `Sum of single-head effects: <b>${fmt(r.sumSingles)}</b>` +
-          (r.sumGroups != null ? `<br>Name movers + backups, separately: <b>${fmt(r.sumGroups)}</b>` : "") +
+          `${state.ref === TASK.denoise ? "Restored" : "Knocked out"} together: <b>${fmt(r.joint)}</b> <span class="muted">[${fmt2(r.ci[0])}, ${fmt2(r.ci[1])}]</span><br>` +
+          (r.sumSingles != null ? `Sum of single-head effects: <b>${fmt(r.sumSingles)}</b>` : `<span class="muted">patched as whole layers, no single-head sum</span>`) +
+          (r.sumGroups != null ? `<br>${G[c].rows[0].name} + ${G[c].rows[1].name.toLowerCase()}, separately: <b>${fmt(r.sumGroups)}</b>` : "") +
           (sel != null && r.heads.includes(sel) ? `<br>Head ${lab(sel)} alone: <b>${fmt(byCond[c].truth[sel])}</b>` : "") +
-          `<br><span class="muted">${fmt2(100 * r.joint / g.clean)}% of the clean logit difference</span>`))
+          `<br><span class="muted">${fmt2(100 * r.joint / g.clean)}% of the clean ${TASK.metricShort}</span>`))
         .on("mouseleave", hideTip);
     });
   });
   const lg = d3.select("#t4legend"); lg.selectAll("*").remove();
-  lg.html(`<span><svg width="22" height="12"><rect x="1" y="1" width="20" height="10" rx="2" fill="var(--ink-2)" opacity="0.75"/></svg>Knocked out together (95% CI)</span>` +
+  const denL = state.ref === TASK.denoise;
+  lg.html(`<span><svg width="22" height="12"><rect x="1" y="1" width="20" height="10" rx="2" fill="var(--ink-2)" opacity="0.75"/></svg>${denL ? "Restored" : "Knocked out"} together (95% CI)</span>` +
     `<span><svg width="10" height="16"><line x1="5" x2="5" y1="1" y2="15" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round"/></svg>Sum of single-head effects</span>` +
-    `<span><svg width="14" height="14"><path transform="translate(7,7)" d="${d3.symbol(d3.symbolDiamond, 70)()}" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.5"/></svg>The two groups knocked out separately, added</span>` +
-    (sel != null && ["name_movers", "backup_nm"].includes(selRole) ? `<span><i class="sw" style="background:var(--late)"></i>Head ${lab(sel)} on its own</span>` : ""));
-  const P = G.all.rows, B = G.BABA.rows, A = G.ABBA.rows;
-  const den = state.ref === "denoise_abc", verb = den ? "brings back" : "drops the logit difference by";
+    `<span><svg width="14" height="14"><path transform="translate(7,7)" d="${d3.symbol(d3.symbolDiamond, 70)()}" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.5"/></svg>The two groups ${denL ? "restored" : "knocked out"} separately, added</span>` +
+    (sel != null && TASK.groups.map(g => g.role).includes(selRole) ? `<span><i class="sw" style="background:var(--late)"></i>Head ${lab(sel)} on its own</span>` : ""));
+  const P = G.all.rows;
+  const den = state.ref === TASK.denoise, verb = den ? "brings back" : `drops the ${TASK.metricShort} by`;
   const ratio = Math.abs(P[2].sumGroups) >= 0.1 ? `, about <b>${(P[2].joint / P[2].sumGroups).toFixed(1)}×</b> what the two groups do separately (${fmt2(P[2].sumGroups)})` : `, while the two groups separately add up to only ${fmt2(P[2].sumGroups)}`;
-  const flip = Math.sign(B[0].joint) !== Math.sign(A[0].joint);
+  let tail;
+  if (TASK.orders) {
+    const B = G.BABA.rows, A = G.ABBA.rows, flip = Math.sign(B[0].joint) !== Math.sign(A[0].joint);
+    tail = flip ? `The name movers alone change sign with name order: <b>${fmt(B[0].joint)}</b> in BABA prompts and <b>${fmt(A[0].joint)}</b> in ABBA prompts, which averages to ${fmt2(P[0].joint)} pooled.`
+          : `The name movers alone have the same sign in both name orders here: <b>${fmt(B[0].joint)}</b> in BABA prompts and <b>${fmt(A[0].joint)}</b> in ABBA prompts.`;
+  } else {
+    const mlp = P.find(r => r.key === "mlps_8_11");
+    tail = mlp ? `${den ? "Restoring" : "Patching"} MLPs 8–11 as a whole ${den ? "brings back" : "drops it by"} <b>${fmt2(mlp.joint)}</b>.` : "";
+  }
   d3.select("#t4note").html(
-    `${den ? "Restoring" : "Knocking out"} both groups at once ${verb} <b>${fmt2(P[2].joint)}</b>${ratio}. ` +
-    (flip ? `The name movers alone change sign with name order: <b>${fmt(B[0].joint)}</b> in BABA prompts and <b>${fmt(A[0].joint)}</b> in ABBA prompts, which averages to ${fmt2(P[0].joint)} pooled.`
-          : `The name movers alone have the same sign in both name orders here: <b>${fmt(B[0].joint)}</b> in BABA prompts and <b>${fmt(A[0].joint)}</b> in ABBA prompts.`) +
-    (state.ref && state.ref !== "noise_abc" ? ` <span class="muted">Patching setting: ${REFS[state.ref].short}.</span>` : ""));
+    `${den ? "Restoring" : "Knocking out"} both groups at once ${verb} <b>${fmt2(P[2].joint)}</b>${ratio}. ` + tail +
+    (state.ref && state.ref !== TASK.defaultRef ? ` <span class="muted">Patching setting: ${REFS[state.ref].short}.</span>` : ""));
   const t = d3.select("#t4tbl"); t.selectAll("*").remove();
   t.append("tr").html("<th>Prompts</th><th>Group</th><th>Together</th><th>95% CI</th><th>Sum of singles</th><th>Groups separately</th>");
   for (const [c, cname] of CONDS) for (const r of G[c].rows)
-    t.append("tr").html(`<td>${cname}</td><td>${r.name}</td><td>${fmt(r.joint)}</td><td>[${fmt2(r.ci[0])}, ${fmt2(r.ci[1])}]</td><td>${fmt(r.sumSingles)}</td><td>${r.sumGroups != null ? fmt(r.sumGroups) : ""}</td>`);
+    t.append("tr").html(`<td>${cname}</td><td>${r.name}</td><td>${fmt(r.joint)}</td><td>[${fmt2(r.ci[0])}, ${fmt2(r.ci[1])}]</td><td>${r.sumSingles != null ? fmt(r.sumSingles) : ""}</td><td>${r.sumGroups != null ? fmt(r.sumGroups) : ""}</td>`);
 }
 
 // ---------- T5: per template ----------
@@ -595,7 +663,7 @@ const tplShort = t => t.replace(/\[B\]/g, "S").replace(/\[A\]/g, "IO").replace(/
 function computeTemplates() {
   const cells = [];
   const tpls = [...new Set(prompts.map(p => p.tpl))].sort((a, b) => a - b);
-  for (const t of tpls) for (const o of ["BABA", "ABBA"]) {
+  for (const t of tpls) for (const o of (TASK.orders ? ["BABA", "ABBA"] : ["all"])) {
     const ps = prompts.filter(p => p.tpl === t && p.order === o), n = ps.length;
     const m = { attn_end: new Array(NH).fill(0), attn_best: null, dla: new Array(NH).fill(0), attr: new Array(NH).fill(0), truth: new Array(NH).fill(0) };
     const A = Array.from({ length: NH }, () => new Array(D.pairs.length).fill(0));
@@ -606,7 +674,7 @@ function computeTemplates() {
     }
     m.attn_end = A.map(r => r[0]); m.attn_best = A.map(r => d3.max(r)); m.vw_best = VW.map(r => d3.max(r));
     const rho = {}; for (const k of ["attn_end", "attn_best", "vw_best", "dla", "attr"]) rho[k] = spearman(m[k], m.truth);
-    cells.push({ tpl: t, order: o, n, clean: d3.mean(ps, p => p.logit_diff), nm: d3.mean(ps, p => p.group_drop.name_movers), rho, truth: m.truth });
+    cells.push({ tpl: t, order: o, n, clean: d3.mean(ps, p => p.logit_diff), nm: d3.mean(ps, p => p.group_drop[TASK.t5group]), rho, truth: m.truth });
   }
   return { tpls, cells };
 }
@@ -676,7 +744,7 @@ function drawRefs() {
   const scored = rowsM.map(r => ({ r, v: val(r, state.ref) })).sort((a, b) => b.v - a.v);
   const fmtv = v => metric === "rho" ? `ρ = ${v.toFixed(2)}` : `${v}/10`;
   const nonAttr = scored.filter(x => x.r.key !== "attr");
-  d3.select("#t6note").html(`Against <b>${REFS[state.ref].short}</b> (${{ all: "pooled", BABA: "BABA", ABBA: "ABBA" }[state.cond]} prompts), ` +
+  d3.select("#t6note").html(`Against <b>${REFS[state.ref].short}</b> (${TASK.orders ? { all: "pooled", BABA: "BABA", ABBA: "ABBA" }[state.cond] : "all"} prompts), ` +
     `the best-agreeing method is <b>${scored[0].r.label}</b> (${fmtv(scored[0].v)}) and the weakest is <b>${scored[scored.length - 1].r.label}</b> (${fmtv(scored[scored.length - 1].v)}).` +
     (scored[0].r.key === "attr" ? ` Leaving out attribution patching, it is <b>${nonAttr[0].r.label}</b> (${fmtv(nonAttr[0].v)}).` : ""));
   // table view
@@ -688,16 +756,16 @@ function drawRefs() {
 function drawTemplates() {
   const T = tplStats, wrap = d3.select("#t5"); wrap.selectAll("*").remove();
   const sel = state.sel, mname = METHODS.find(d => d.key === state.method).short;
-  const showO = state.cond === "all" ? ["BABA", "ABBA"] : [state.cond];
+  const showO = !TASK.orders ? ["all"] : state.cond === "all" ? ["BABA", "ABBA"] : [state.cond];
   const cell = (t, o) => T.cells.find(c => c.tpl === t && c.order === o);
   const panels = [
-    { key: "clean", title: "Clean logit difference", get: c => c.clean, all: byCond.all.n ? d3.mean(prompts, p => p.logit_diff) : 0, zero: true },
+    { key: "clean", title: `Clean ${TASK.metricShort}`, get: c => c.clean, all: byCond.all.n ? d3.mean(prompts, p => p.logit_diff) : 0, zero: true },
     { key: "rho", title: `Agreement (ρ): ${mname}`, get: c => c.rho[state.method], all: byCond.all.rho[state.method], zero: true, max1: true },
-    { key: "nm", title: state.ref === "denoise_abc" ? "Name movers restored" : "Name-mover knockout effect", get: c => c.nm, all: groupStats.all.rows[0].joint, zero: true },
+    { key: "nm", title: state.ref === TASK.denoise ? TASK.t5groupTitleDen : TASK.t5groupTitle, get: c => c.nm, all: groupStats.all.rows.find(r => r.key === TASK.t5group).joint, zero: true },
   ];
   if (sel != null) panels.push({ key: "head", title: `Head ${lab(sel)} patching effect`, get: c => c.truth[sel], all: byCond.all.truth[sel], zero: true });
   // columns share the card's width, so three or four panels both fit without sideways scrolling
-  const labelW = 280, gap = 36, rowH = 22, top = 40, bottom = 26, avail = wrap.node().clientWidth;
+  const labelW = TASK.orders ? 280 : 110, gap = 36, rowH = 22, top = 40, bottom = 26, avail = wrap.node().clientWidth;
   const pw = Math.max(140, Math.min(240, Math.floor((avail - labelW - panels.length * gap) / panels.length)));
   const maxTitle = Math.floor(pw / 6.4);
   const W = labelW + panels.length * (pw + gap) - gap + 12, Hh = top + T.tpls.length * rowH + bottom;
@@ -705,8 +773,9 @@ function drawTemplates() {
   T.tpls.forEach((t, r) => {
     const y = top + r * rowH + rowH / 2;
     if (r % 2 === 0) svg.append("rect").attr("x", 0).attr("y", y - rowH / 2).attr("width", W).attr("height", rowH).attr("fill", "var(--grid)").attr("opacity", 0.35);
-    const full = tplShort(TEMPLATES[t]), short = full.length > 44 ? full.slice(0, 43) + "…" : full;
-    svg.append("text").attr("class", "tpl").attr("x", 4).attr("y", y + 4).text(`T${t + 1}  ${short}`);
+    if (TASK.orders) { const full = tplShort(TEMPLATES[t]), short = full.length > 44 ? full.slice(0, 43) + "…" : full;
+      svg.append("text").attr("class", "tpl").attr("x", 4).attr("y", y + 4).text(`T${t + 1}  ${short}`); }
+    else svg.append("text").attr("class", "tpl").attr("x", 4).attr("y", y + 4).text(`YY ${D.buckets[t]}`);
   });
   panels.forEach((P, k) => {
     const x0 = labelW + k * (pw + gap), vals = T.cells.map(P.get).concat([P.all]);
@@ -726,6 +795,7 @@ function drawTemplates() {
     g.append("text").attr("x", x(P.all)).attr("y", top - 13).attr("text-anchor", "middle").style("font-size", "10px").text(`all ${fmt2(P.all)}`);
     T.tpls.forEach((t, r) => {
       const y = top + r * rowH + rowH / 2, cb = cell(t, "BABA"), ca = cell(t, "ABBA");
+      if (!TASK.orders) { g.append("circle").attr("cx", x(P.get(cell(t, "all")))).attr("cy", y).attr("r", 4.5).attr("fill", "var(--ink-2)").attr("stroke", "var(--surface)").attr("stroke-width", 1.5); return; }
       if (showO.length === 2) g.append("line").attr("x1", x(P.get(cb))).attr("x2", x(P.get(ca))).attr("y1", y).attr("y2", y).attr("stroke", "var(--muted)").attr("stroke-width", 1.5);
       if (showO.includes("BABA")) g.append("circle").attr("cx", x(P.get(cb))).attr("cy", y).attr("r", 4.5).attr("fill", "var(--ink-2)").attr("stroke", "var(--surface)").attr("stroke-width", 1.5);
       if (showO.includes("ABBA")) g.append("circle").attr("cx", x(P.get(ca))).attr("cy", y).attr("r", 4.5).attr("fill", "var(--surface)").attr("stroke", "var(--ink)").attr("stroke-width", 1.5);
@@ -734,28 +804,37 @@ function drawTemplates() {
   // one hover target per row covering all panels
   T.tpls.forEach((t, r) => {
     const y = top + r * rowH, cb = cell(t, "BABA"), ca = cell(t, "ABBA");
+    if (!TASK.orders) { const c = cell(t, "all");
+      svg.append("rect").attr("x", 0).attr("y", y).attr("width", W).attr("height", rowH).attr("fill", "transparent")
+        .on("mousemove", ev => showTip(ev, `<b>Start year ${D.buckets[t]}</b> <span class="muted">${c.n} prompts</span><br>` +
+          panels.map(P => `${P.title}: <b>${fmt2(P.get(c))}</b>`).join("<br>"))).on("mouseleave", hideTip);
+      return; }
     svg.append("rect").attr("x", 0).attr("y", y).attr("width", W).attr("height", rowH).attr("fill", "transparent")
       .on("mousemove", ev => showTip(ev, `<b>T${t + 1}</b> <span class="muted">${tplShort(TEMPLATES[t])} → IO</span><br>` +
         `<span class="muted">BABA (${cb.n}) / ABBA (${ca.n})</span><br>` +
         panels.map(P => `${P.title}: <b>${fmt2(P.get(cb))}</b> / <b>${fmt2(P.get(ca))}</b>`).join("<br>")))
       .on("mouseleave", hideTip);
   });
-  d3.select("#t5legend").html(
+  const allLine = `<span><svg width="10" height="14"><line x1="5" x2="5" y1="1" y2="13" stroke="var(--ink)" stroke-width="1.5" opacity="0.55"/></svg>All ${prompts.length} prompts</span>`;
+  d3.select("#t5legend").html(TASK.orders ?
     `<span><svg width="12" height="12"><circle cx="6" cy="6" r="4.5" fill="var(--ink-2)"/></svg>BABA prompts</span>` +
-    `<span><svg width="12" height="12"><circle cx="6" cy="6" r="4.5" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.5"/></svg>ABBA prompts</span>` +
-    `<span><svg width="10" height="14"><line x1="5" x2="5" y1="1" y2="13" stroke="var(--ink)" stroke-width="1.5" opacity="0.55"/></svg>All 120 prompts</span>`);
+    `<span><svg width="12" height="12"><circle cx="6" cy="6" r="4.5" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.5"/></svg>ABBA prompts</span>` + allLine
+    : `<span><svg width="12" height="12"><circle cx="6" cy="6" r="4.5" fill="var(--ink-2)"/></svg>Prompts with a start year in this range</span>` + allLine);
   const t = d3.select("#t5tbl"); t.selectAll("*").remove();
-  t.append("tr").html(`<th>Template</th><th>Order</th><th>n</th>` + panels.map(P => `<th>${P.title}</th>`).join(""));
-  for (const c of T.cells) t.append("tr").html(`<td>T${c.tpl + 1}</td><td>${c.order}</td><td>${c.n}</td>` + panels.map(P => `<td>${fmt2(P.get(c))}</td>`).join(""));
+  if (TASK.orders) {
+    t.append("tr").html(`<th>Template</th><th>Order</th><th>n</th>` + panels.map(P => `<th>${P.title}</th>`).join(""));
+    for (const c of T.cells) t.append("tr").html(`<td>T${c.tpl + 1}</td><td>${c.order}</td><td>${c.n}</td>` + panels.map(P => `<td>${fmt2(P.get(c))}</td>`).join(""));
+  } else {
+    t.append("tr").html(`<th>Start year</th><th>n</th>` + panels.map(P => `<th>${P.title}</th>`).join(""));
+    for (const c of T.cells) t.append("tr").html(`<td>${D.buckets[c.tpl]}</td><td>${c.n}</td>` + panels.map(P => `<td>${fmt2(P.get(c))}</td>`).join(""));
+  }
 }
 
 // ---------- T3: where the selected head looks ----------
 const attnCache = {};
+const t3name = () => TASK.orders ? `T${state.t3tpl + 1} ${state.t3order}` : `start year ${D.buckets[state.t3tpl]}`;
 let attnReq = 0;
-function roleLabels(meta) {
-  return meta.toks.map((t, k) => k === meta.io_pos ? "IO" : k === meta.s1_pos ? "S1" : k === meta.s2_pos ? "S2"
-    : t === "<|endoftext|>" ? "BOS" : t.trim() || "·");
-}
+const roleLabels = meta => TASK.roleLabels(meta);
 async function drawAttention() {
   const wrap = d3.select("#t3"), i = state.sel;
   const order = state.t3order;
@@ -764,24 +843,24 @@ async function drawAttention() {
   if (i == null) { wrap.selectAll("*").remove(); d3.select("#t3note").text(""); d3.select("#t3legend").html(""); return; }
   const key = `L${Math.floor(i / H)}_H${i % H}`, req = ++attnReq;
   if (!attnCache[key]) {
-    try { attnCache[key] = await d3.json(`../results/attn/${key}.json`); }
-    catch (e) { if (req === attnReq) wrap.html(`<p class="empty">Could not load results/attn/${key}.json (${e}).</p>`); return; }
+    try { attnCache[key] = await d3.json(`${TASK.attnDir}${key}.json`); }
+    catch (e) { if (req === attnReq) wrap.html(`<p class="empty">Could not load ${TASK.attnDir}${key}.json (${e}).</p>`); return; }
   }
   if (req !== attnReq || state.sel !== i) return;   // a newer selection arrived while loading
   const meta = ATTN_GROUPS.find(g => g.tpl === state.t3tpl && g.order === order);
   const item = attnCache[key].groups.find(g => g.tpl === state.t3tpl && g.order === order);
   const M = item[state.t3mode], T = meta.toks.length, labels = roleLabels(meta);
-  const end = T - 1, io = meta.io_pos, s1 = meta.s1_pos, s2 = meta.s2_pos;
-  const marked = [["end>io", end, io], ["end>s1", end, s1], ["end>s2", end, s2], ["s2>s1", s2, s1], ["s2>s1+1", s2, s1 + 1], ["s1+1>s1", s1 + 1, s1]];
+  const end = T - 1, tgt = TASK.endKey(meta), roleSet = new Set(TASK.rolePos(meta));
+  const marked = TASK.marked(meta);
   const best = stats.bestPair[i];
   wrap.selectAll("*").remove();
   const rowLab = 70, colLab = 64, avail = Math.max(300, wrap.node().clientWidth);
   const C = Math.max(14, Math.min(24, Math.floor((avail - rowLab - 10) / T)));
-  const W = rowLab + T * C + 10, Hh = colLab + T * C + 8;
+  const W = rowLab + T * C + 48, Hh = colLab + T * C + 8;   // room on the right for the last rotated label
   const svg = wrap.append("svg").attr("width", W).attr("height", Hh).attr("role", "img")
-    .attr("aria-label", `Attention pattern of head ${lab(i)}, template ${state.t3tpl + 1}, ${order}`);
+    .attr("aria-label", `Attention pattern of head ${lab(i)}, ${t3name()}`);
   const ramp = d3.scaleSequential(seqRamp()).domain([0, 100]);
-  const isRole = k => k === io || k === s1 || k === s2;
+  const isRole = k => roleSet.has(k);
   labels.forEach((t, k) => {
     svg.append("text").attr("class", "tok" + (isRole(k) ? " role" : "")).attr("x", rowLab - 6).attr("y", colLab + k * C + C / 2 + 4).attr("text-anchor", "end").text(t.length > 9 ? t.slice(0, 8) + "…" : t);
     svg.append("text").attr("class", "tok" + (isRole(k) ? " role" : "")).attr("transform", `translate(${rowLab + k * C + C / 2 + 4},${colLab - 6}) rotate(-55)`).text(t.length > 9 ? t.slice(0, 8) + "…" : t);
@@ -791,7 +870,7 @@ async function drawAttention() {
     const v = M[q][k], pair = marked.find(m => m[1] === q && m[2] === k);
     g.append("rect").attr("x", k * C + 1).attr("y", q * C + 1).attr("width", C - 2).attr("height", C - 2).attr("rx", 2).attr("fill", ramp(v))
       .on("mousemove", ev => showTip(ev, `<b>${labels[q]} → ${labels[k]}</b><br>${state.t3mode === "vw" ? "Value-weighted" : "Attention"}: <b>${v}%</b>` +
-        (pair ? `<br><span class="muted">scored position: ${PAIR_NAME[pair[0]]}</span>` : "") + `<br><span class="muted">head ${lab(i)}, T${state.t3tpl + 1} ${order}, average of 4 prompts</span>`))
+        (pair ? `<br><span class="muted">scored position: ${PAIR_NAME[pair[0]]}</span>` : "") + `<br><span class="muted">head ${lab(i)}, ${t3name()}, average of ${item.n || meta.n || "the group's"} prompts</span>`))
       .on("mouseleave", hideTip);
   }
   for (const [name, q, k] of marked) g.append("rect").attr("x", k * C).attr("y", q * C).attr("width", C).attr("height", C).attr("rx", 3)
@@ -800,32 +879,56 @@ async function drawAttention() {
     `<span><svg width="14" height="14"><rect x="1" y="1" width="12" height="12" rx="2" fill="none" stroke="var(--ring)" stroke-width="1"/></svg>Scored position</span>` +
     `<span><svg width="14" height="14"><rect x="1.5" y="1.5" width="11" height="11" rx="2" fill="none" stroke="var(--ring)" stroke-width="2.5"/></svg>This head's best position (${PAIR_NAME[best]})</span>`);
   const vals = marked.map(([name, q, k]) => [name, M[q][k]]), top = vals.reduce((a, b) => b[1] > a[1] ? b : a);
-  d3.select("#t3note").html(`In T${state.t3tpl + 1} ${order} prompts, head ${lab(i)}'s strongest scored position is <b>${PAIR_NAME[top[0]]}</b> at <b>${top[1]}%</b>` +
-    `${state.t3mode === "vw" ? " (value-weighted)" : ""}. From the final token it puts <b>${M[end][io]}%</b> on IO, which is the only position the plain attention score looks at.`);
+  d3.select("#t3note").html(`In ${t3name()} prompts, head ${lab(i)}'s strongest scored position is <b>${PAIR_NAME[top[0]]}</b> at <b>${top[1]}%</b>` +
+    `${state.t3mode === "vw" ? " (value-weighted)" : ""}. From the final token it puts <b>${M[end][tgt]}%</b> on ${TASK.endTarget}, which is the only position the plain attention score looks at.`);
 }
 
 let byCond = {};
 function recomputeAll() {
-  for (const c of ["all", "BABA", "ABBA"]) byCond[c] = compute(c);
+  for (const c of (TASK.orders ? ["all", "BABA", "ABBA"] : ["all"])) byCond[c] = compute(c);
   groupStats = computeGroups();
   tplStats = computeTemplates();
+}
+function refTexts(ref) {
+  METHODS.find(m => m.key === "truth").name = `Activation patching (${REFS[ref].short})`;
+  d3.select("#refdesc").text(REFS[ref].desc);
+  const den = ref === TASK.denoise;
+  d3.select("#t4what").text(den
+    ? `Each bar is how much of ${TASK.metricExpr} comes back when a whole group gets its clean output inside a run on the corrupted prompt`
+    : `Each bar is the drop in ${TASK.metricExpr} when a whole group is patched at the same time (${REFS[ref].short})`);
+  d3.select("#t4sign").text(den ? "A positive value means the group restores some of the answer." : "A positive value means the model gets worse at the task.");
 }
 function setRef(ref) {
   state.ref = ref;
   for (const p of prompts) { p.truth = p.var[ref]; p.group_drop = p.vgroup[ref]; }
-  METHODS.find(m => m.key === "truth").name = `Activation patching (${REFS[ref].short})`;
-  d3.select("#refdesc").text(REFS[ref].desc);
-  d3.select("#t4what").text(ref === "denoise_abc"
-    ? "Each bar is how much of logit(IO) − logit(S) comes back when a whole group of heads gets its clean output inside a run on the corrupted prompt"
-    : `Each bar is the drop in logit(IO) − logit(S) when a whole group of heads is patched at the same time (${REFS[ref].short})`);
-  d3.select("#t4sign").text(ref === "denoise_abc" ? "A positive value means the group restores some of the answer." : "A positive value means the model gets worse at the task.");
-  recomputeAll(); render();
+  refTexts(ref); recomputeAll(); render();
 }
 function select(i) { state.sel = state.sel === i ? null : i; render(); }
 let lastCond = state.cond;
 function render() {
   if (state.cond !== lastCond) { if (state.cond !== "all") state.t3order = state.cond; lastCond = state.cond; }  // the global filter sets T3's order when it changes
   stats = byCond[state.cond]; drawGrids(); drawScatter(); drawDetail(); drawAttention(); drawRefs(); drawGroups(); drawTemplates(); drawTable(); }
+
+const TEXTS = {
+  gt: {
+    t1hint: "Layer × head grids. Rank mode colors each head by its rank of |score| within its method, in the five bands shown under each grid, so methods with different units stay comparable. “Best pair” is a head's highest attention across five positions (final token → the start year YY, its century and the noun; YY → the century and the noun). Dots mark the seven heads Hanna et al. (2023) found. Click a cell to select a head everywhere.",
+    t3hint: "The selected head's attention, averaged over all prompts whose start year falls in one range (each row is a query token and sums to 100%). The noun, the start century (XX start), the start year (YY) and the final century token (XX end) are shown by role; the other words are the same in every prompt. Outlined cells are the five positions we score heads at, and the thick outline is this head's best one over all prompts. Value-weighted scales each entry by how much that token actually writes into the output (Kobayashi et al. 2020).",
+    t6hint: "Activation patching is not one measurement. The two columns are noising (swap a head's output for its output on the prompt with the start year changed to XX01) and denoising (put a head's clean output back into the XX01 run). Each cell says how well the row agrees with that column, as Spearman ρ on |score| over the 144 heads (or top-10 overlap). Click a column to make it the reference for every other view. Attribution patching is a gradient estimate of the first column, so it has a built-in advantage there.",
+    t5hint: "Prompts grouped by start year YY, about 40 per row. The vertical line is the value over all prompts. Agreement uses the method picked in the scatter above. Select a head to add its own patching effect per range. Late start years leave fewer valid end years, so the clean metric drops there.",
+    t4panels: "MLPs 8–11 are patched as whole layers for comparison: Hanna et al. find they do the comparison itself, so the heads are only part of the circuit.",
+  },
+};
+function applyTaskTexts() {
+  d3.select("#intro").text(TASK.intro);
+  d3.selectAll("#task button").attr("aria-pressed", function () { return this.dataset.v === TASK_KEY; })
+    .on("click", function () { if (this.dataset.v !== TASK_KEY) location.search = this.dataset.v === "gt" ? "?task=gt" : ""; });
+  d3.select("#stage").selectAll("option").data([["all", "Mark all circuit heads"], ...TASK.stageOptions, ["none", "Don't mark"]]).join("option")
+    .attr("value", d => d[0]).text(d => d[1]);
+  d3.select("#t5title").text(TASK.t5title); d3.select("#t5sum").text(TASK.t5sum); d3.select("#t3tpllabel").text(TASK.t3label);
+  if (!TASK.orders) { d3.select("#condctl").attr("hidden", true); d3.select("#t3orderctl").attr("hidden", true); state.cond = "all"; state.t3order = "all"; }
+  const tx = TEXTS[TASK_KEY]; if (tx) for (const [id, v] of Object.entries(tx)) d3.select("#" + id).text(v);
+  document.title = `Where Explanations Disagree · ${TASK_KEY === "gt" ? "greater-than" : "IOI"}`;
+}
 
 function seg(id, key) {
   d3.selectAll(`#${id} button`).on("click", function () {
@@ -835,31 +938,36 @@ function seg(id, key) {
   });
 }
 
-Promise.all([d3.json(DATA_URL), d3.json("../data/ioi_lists.json"), d3.json(ATTN_URL), d3.json(VAR_URL).catch(() => null)]).then(([d, lists, as, pv]) => {
-  D = d; prompts = d.prompts; TEMPLATES = lists.BABA_TEMPLATES;
+applyTaskTexts();
+Promise.all([d3.json(TASK.dataUrl), TASK.listsUrl ? d3.json(TASK.listsUrl) : Promise.resolve(null), d3.json(TASK.attnUrl), d3.json(TASK.varUrl).catch(() => null)]).then(([d, lists, as, pv]) => {
+  D = d; prompts = d.prompts; TEMPLATES = lists ? lists.BABA_TEMPLATES : null;
   // attention at six positions (and value-weighted) comes from attention_patterns.py; same prompts, same order
   if (as.prompts.length !== prompts.length || as.prompts.some((q, i) => q.text !== prompts[i].text)) throw new Error("attn_scores.json prompts do not match the v3 file");
   prompts.forEach((p, i) => { p.attn = as.prompts[i].attn; p.vw = as.prompts[i].vw; });
   D.pairs = as.pairs; ATTN_GROUPS = as.groups;
   for (const [r, hs] of Object.entries(d.roles)) for (const h of hs) { const [l, k] = h.split(".").map(Number); role[l * H + k] = r; }
-  role[2 * H + 2] = "previous_token"; role[4 * H + 11] = "previous_token";  // Wang et al. 2023, not in the pipeline's role list
+  for (const [h, r] of Object.entries(TASK.extraRoles)) { const [l, k] = h.split(".").map(Number); role[l * H + k] = r; }
   // the five patching settings, if pipeline/patching_variants.py has been run; same prompts, same order
   if (pv && pv.prompts.length === prompts.length && pv.prompts.every((q, i) => q.text === prompts[i].text)) {
-    prompts.forEach((p, i) => { p.var = pv.prompts[i].scores; p.vgroup = pv.prompts[i].group; });
+    prompts.forEach((p, i) => { p.var = pv.prompts[i].scores; p.vgroup = pv.prompts[i].group;
+      p.ldAll = pv.prompts[i].logit_diff || (p.metric_corrupt != null ? { "01": p.metric_corrupt } : null); });
     d3.select("#ref").selectAll("option").data(pv.variants).join("option").attr("value", v => v).text(v => REFS[v] ? REFS[v].name : v);
     d3.select("#ref").on("change", function () { setRef(this.value); });
     d3.select("#refctl").attr("hidden", null); d3.select("#refs").attr("hidden", null);
-    state.ref = "noise_abc";
+    state.ref = TASK.defaultRef; refTexts(state.ref);
   }
   recomputeAll();
-  d3.select("#nprompts").text(`${prompts.length} prompts from ${new Set(prompts.map(p => p.tpl)).size} templates in two name orders.`);
+  d3.select("#nprompts").text(TASK.orders ? `${prompts.length} prompts from ${new Set(prompts.map(p => p.tpl)).size} templates in two name orders.`
+    : `${prompts.length} prompts, two for each start year from 02 to 98.`);
   d3.select("#method").selectAll("option").data(METHODS.filter(m => m.key !== "truth")).join("option")
     .attr("value", m => m.key).text(m => m.name);
   d3.select("#method").on("change", function () { state.method = this.value; render(); });
   d3.select("#stage").on("change", function () { state.stage = this.value; render(); });
   seg("cond", "cond"); seg("colormode", "colormode"); seg("t6metric", "t6metric");
-  d3.select("#t3tpl").selectAll("option").data(d3.range(TEMPLATES.length)).join("option").attr("value", d => d)
+  if (TASK.orders) d3.select("#t3tpl").selectAll("option").data(d3.range(TEMPLATES.length)).join("option").attr("value", d => d)
     .text(d => { const t = tplShort(TEMPLATES[d]); return `T${d + 1}: ${t.length > 50 ? t.slice(0, 49) + "…" : t}`; });
+  else d3.select("#t3tpl").selectAll("option").data(d3.range(D.buckets.length)).join("option").attr("value", d => d)
+    .text(d => `YY ${D.buckets[d]} (${prompts.filter(p => p.tpl === d).length} prompts)`);
   d3.select("#t3tpl").on("change", function () { state.t3tpl = +this.value; drawAttention(); });
   d3.selectAll("#t3order button").on("click", function () { state.t3order = this.dataset.v; drawAttention(); });
   d3.selectAll("#t3mode button").on("click", function () { state.t3mode = this.dataset.v;
@@ -867,7 +975,7 @@ Promise.all([d3.json(DATA_URL), d3.json("../data/ioi_lists.json"), d3.json(ATTN_
   render();
   addEventListener("resize", () => { drawScatter(); drawAttention(); drawRefs(); drawGroups(); drawTemplates(); });
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
-}).catch(e => d3.select("#err").text(`Could not load ${DATA_URL}. Serve the repo root with "python3 -m http.server" and open /frontend/. (${e})`));
+}).catch(e => d3.select("#err").text(`Could not load ${TASK.dataUrl}. Serve the repo root with "python3 -m http.server" and open /frontend/. (${e})`));
 </script>
 </body>
 </html>

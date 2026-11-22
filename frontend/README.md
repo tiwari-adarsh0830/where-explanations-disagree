@@ -2,13 +2,15 @@
 
 The D3 tool. It's one HTML page (`index.html`) that reads `../results/ioi_v3_results_per_prompt.json`, `../results/attn_scores.json`, `../results/patching_variants_per_prompt.json` (optional) and `../data/ioi_lists.json`, and works out everything else in the browser. When you select a head it also loads that head's attention patterns from `../results/attn/`.
 
+It covers two tasks. The Task switch at the top (or `?task=gt` in the address) loads the greater-than data from `../results/gt/` instead, and every view relabels itself: start years instead of templates, the year heads from Hanna et al. instead of the IOI circuit, and no name-order filter. Switching reloads the page.
+
 To run it, serve the repo root and open the frontend folder:
 
 ```
 python3 -m http.server 8000
 ```
 
-Then go to http://localhost:8000/frontend/. Opening the file directly doesn't work because browsers block loading the JSON from a `file://` page. D3 comes from a CDN, so you need internet.
+Then go to http://localhost:8000/frontend/ (or http://localhost:8000/frontend/?task=gt for greater-than). Opening the file directly doesn't work because browsers block loading the JSON from a `file://` page. D3 comes from a CDN, so you need internet.
 
 What's there so far:
 
@@ -20,4 +22,4 @@ What's there so far:
 - **Per template:** clean logit difference, agreement with patching, the name-mover knockout and the selected head's effect for each of the 15 templates, BABA next to ABBA.
 - **Selected head panel and table view:** click a head anywhere and it's selected in every view.
 
-The name order filter (pooled, BABA, ABBA) and the patching setting change every view at once.
+The name order filter (pooled, BABA, ABBA, IOI only) and the patching setting change every view at once.

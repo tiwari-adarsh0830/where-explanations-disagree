@@ -9,7 +9,7 @@ Explanation methods for language models don't always agree. Attention maps, logi
 
 We're starting with GPT-2 small on the indirect object identification (IOI) task. Wang et al. (2023) already mapped the circuit GPT-2 uses for it, so we have something to compare against.
 
-**Status:** in progress. The proposal was approved in October and the project update went in on Nov 3. Pipeline v3 and the analysis are done, we've rerun patching under five different settings, and the D3 tool has six working views. The second task (greater-than) has its pipeline and analysis; adding it to the tool is next.
+**Status:** in progress. The proposal was approved in October and the project update went in on Nov 3. Pipeline v3 and the analysis are done, we've rerun patching under five different settings, and the D3 tool has six working views. The second task (greater-than) is in too, and the tool switches between the two tasks.
 
 ## What's in here
 
