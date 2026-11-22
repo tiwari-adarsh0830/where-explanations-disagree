@@ -9,19 +9,19 @@ Explanation methods for language models don't always agree. Attention maps, logi
 
 We're starting with GPT-2 small on the indirect object identification (IOI) task. Wang et al. (2023) already mapped the circuit GPT-2 uses for it, so we have something to compare against.
 
-**Status:** in progress. The proposal was approved in October. Pipeline v3 and the first round of analysis are done, and the D3 tool is next.
+**Status:** in progress. The proposal was approved in October and the project update went in on Nov 3. Pipeline v3 and the analysis are done, and the D3 tool has three working views so far.
 
 ## What's in here
 
 | Folder | What it has |
 | --- | --- |
-| `pipeline/` | Python scripts that compute the explanations and patching effects |
+| `pipeline/` | Python scripts that compute the explanations and patching effects. Older versions are in `pipeline/archive/` |
 | `data/` | `ioi_lists.json`: templates, names, places and objects from Wang et al.'s dataset code |
-| `results/` | Output of our first proper run (raw JSON and a per-head table) |
-| `frontend/` | The D3 tool. Not started yet |
+| `results/` | Pipeline and analysis output (JSON, plus a per-head table from v2) |
+| `frontend/` | The D3 tool (one HTML page, see `frontend/README.md`) |
 | `docs/` | Links to our planning docs |
 
-In `pipeline/`, `ioi_check_v3.py` is the current pipeline. It's the same as v2 (120 prompts from the paper's templates) but it keeps every prompt's scores, labels each prompt with its template and name order, and records attention at five query/key positions instead of one. `analysis_v3.py` reads that output and does the bootstrap intervals, the per-order and per-template breakdowns, and the attribution patching error analysis. `ioi_check_v2.py` produced the numbers in our proposal and `ioi_smoke_test_v1.py` was our first rough try. We kept both for reference.
+In `pipeline/`, `ioi_check_v3.py` is the current pipeline. It's the same as v2 (120 prompts from the paper's templates) but it keeps every prompt's scores, labels each prompt with its template and name order, and records attention at five query/key positions instead of one. `analysis_v3.py` reads that output and does the bootstrap intervals, the per-order and per-template breakdowns, and the attribution patching error analysis. `archive/ioi_check_v2.py` produced the numbers in our proposal and `archive/ioi_smoke_test_v1.py` was our first rough try. We kept both for reference.
 
 ## Setup
 
@@ -62,4 +62,4 @@ Since then we found that attention mostly misses those heads because we only loo
 
 ## AI use
 
-Following the course AI policy: both scripts in `pipeline/` were written with help from Claude (an AI assistant). We're going through them and re-running them ourselves. We'll keep this section updated as the project goes.
+Following the course AI policy: the scripts in `pipeline/` and the D3 page in `frontend/` were written with help from Claude (an AI assistant). We run everything ourselves and check the numbers against each other. We'll keep this section updated as the project goes.
