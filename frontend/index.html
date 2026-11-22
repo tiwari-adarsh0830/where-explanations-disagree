@@ -45,6 +45,7 @@ h2 { font-size: 15px; margin: 0 0 2px; font-weight: 600; }
 .card { scroll-margin-top: 96px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
 .controls { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: flex-end; position: sticky; top: 0; z-index: 5;
   background: var(--page); padding: 10px 0 12px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+@media (max-width: 600px) { .controls { position: static; } }
 .ctl { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-2); }
 .seg { display: inline-flex; border: 1px solid var(--axis); border-radius: 8px; overflow: hidden; }
 .seg button { font: inherit; font-size: 13px; color: var(--ink); background: var(--surface); border: 0; padding: 6px 12px; cursor: pointer; }
@@ -83,6 +84,19 @@ details summary { cursor: pointer; font-weight: 600; }
 #tbl td:nth-child(-n+2), #tbl th:nth-child(-n+2) { text-align: left; }
 #tbl tr.sel td { background: var(--div-mid); }
 #err { color: var(--div-neg); }
+.t4 { display: flex; flex-wrap: wrap; gap: 12px 20px; }
+.t4 .panel { flex: 1 1 300px; min-width: 0; border: 1.5px solid transparent; border-radius: 8px; padding: 8px 8px 4px; }
+.t4 .panel.active { border: 1.5px solid var(--muted); }
+.t4 .panel h3 { font-size: 13px; font-weight: 600; margin: 0 0 2px; }
+.t4 .panel .clean { font-size: 11.5px; color: var(--muted); margin: 0 0 4px; font-variant-numeric: tabular-nums; }
+.t4legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--ink-2); margin: 8px 0 4px; }
+.t4legend span { display: inline-flex; align-items: center; gap: 6px; }
+.t4note { font-size: 13px; color: var(--ink-2); margin: 6px 0 0; max-width: 900px; }
+.t4note b { color: var(--ink); font-variant-numeric: tabular-nums; }
+#t4tbl { border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; margin-top: 8px; }
+#t4tbl th, #t4tbl td { padding: 4px 8px; border-bottom: 1px solid var(--grid); text-align: right; }
+#t4tbl th { color: var(--ink-2); font-weight: 600; }
+#t4tbl td:first-child, #t4tbl th:first-child, #t4tbl td:nth-child(2), #t4tbl th:nth-child(2) { text-align: left; }
 </style>
 </head>
 <body>
@@ -137,6 +151,18 @@ details summary { cursor: pointer; font-weight: 600; }
       <div id="dbody"></div>
     </section>
   </div>
+
+  <section class="card" id="groups">
+    <h2>Do groups of heads behave like their parts?</h2>
+    <p class="hint">Each bar is the drop in logit(IO) − logit(S) when a whole group of heads is patched with its corrupted output at the same time, with a 95% bootstrap interval over prompts. The tick is what you would predict by adding up the effects of patching each head on its own. A positive value means the model gets worse at the task. The three panels split the prompts by name order; the one matching the Name order filter is outlined.</p>
+    <div class="t4legend" id="t4legend"></div>
+    <div class="t4" id="t4"></div>
+    <p class="t4note" id="t4note"></p>
+    <details style="margin-top:10px">
+      <summary>Table view (group knockouts)</summary>
+      <table id="t4tbl"></table>
+    </details>
+  </section>
 
   <section class="card">
     <details>
@@ -371,9 +397,103 @@ function drawTable() {
     .selectAll("td").data(r => cols.map(c => typeof r[c.k] === "number" && c.k.endsWith("_val") ? fmt(r[c.k]) : r[c.k])).join("td").text(d => d);
 }
 
+// ---------- T4: group knockouts ----------
+const CONDS = [["all", "Pooled"], ["BABA", "BABA"], ["ABBA", "ABBA"]];
+let groupStats = null;
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
+  t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function bootCI(vals, reps = 1000, seed = 7) {  // 95% percentile interval of the mean over prompts
+  const rng = mulberry32(seed), n = vals.length, means = new Float64Array(reps);
+  for (let r = 0; r < reps; r++) { let s = 0; for (let k = 0; k < n; k++) s += vals[Math.floor(rng() * n)]; means[r] = s / n; }
+  means.sort(); return [d3.quantileSorted(means, 0.025), d3.quantileSorted(means, 0.975)];
+}
+function computeGroups() {
+  const idx = s => { const [l, h] = s.split(".").map(Number); return l * H + h; };
+  const nm = D.roles.name_movers.map(idx), bk = D.roles.backup_nm.map(idx);
+  const defs = [
+    { key: "name_movers", name: "Name movers", heads: nm },
+    { key: "backups", name: "Backup name movers", heads: bk },
+    { key: "both", name: "Both groups", heads: [...nm, ...bk] },
+  ];
+  const out = {};
+  for (const [c] of CONDS) {
+    const ps = c === "all" ? prompts : prompts.filter(p => p.order === c), s = byCond[c];
+    const rows = defs.map((g, gi) => {
+      const vals = ps.map(p => p.group_drop[g.key]);
+      return { ...g, joint: d3.mean(vals), ci: bootCI(vals, 1000, 11 + gi), sumSingles: d3.sum(g.heads, i => s.truth[i]) };
+    });
+    rows[2].sumGroups = rows[0].joint + rows[1].joint;   // name movers and backups knocked out as two separate groups
+    out[c] = { n: ps.length, clean: d3.mean(ps, p => p.logit_diff), rows };
+  }
+  return out;
+}
+function drawGroups() {
+  const G = groupStats, wrap = d3.select("#t4"); wrap.selectAll("*").remove();
+  const all = CONDS.flatMap(([c]) => G[c].rows.flatMap(r => [r.ci[0], r.ci[1], r.sumSingles, r.sumGroups ?? 0]));
+  const lo = Math.min(0, d3.min(all)), hi = d3.max(all);
+  const sel = state.sel, selRole = sel != null ? role[sel] : null;
+  // create all three panels first so each one's width is known before its chart is drawn
+  const panels = CONDS.map(([c, cname]) => {
+    const panel = wrap.append("div").attr("class", "panel" + (c === state.cond ? " active" : ""));
+    panel.append("h3").text(cname);
+    panel.append("p").attr("class", "clean").text(`${G[c].n} prompts · clean logit difference ${fmt2(G[c].clean)}`);
+    return panel;
+  });
+  const widths = panels.map(pn => pn.node().clientWidth);
+  CONDS.forEach(([c, cname], pi) => {
+    const g = G[c], panel = panels[pi];
+    const W = Math.max(260, widths[pi] - 18), rowH = 44, m = { l: 128, r: 12, t: 6, b: 26 };
+    const Hh = m.t + g.rows.length * rowH + m.b;
+    const x = d3.scaleLinear().domain([lo, hi]).nice(5).range([m.l, W - m.r]);
+    const svg = panel.append("svg").attr("width", W).attr("height", Hh).attr("role", "img")
+      .attr("aria-label", `Group knockout effects, ${cname} prompts`);
+    svg.append("g").attr("class", "gridline").selectAll("line").data(x.ticks(5)).join("line")
+      .attr("x1", d => x(d)).attr("x2", d => x(d)).attr("y1", m.t).attr("y2", Hh - m.b);
+    svg.append("g").attr("class", "axis").attr("transform", `translate(0,${Hh - m.b})`).call(d3.axisBottom(x).ticks(5).tickSize(3));
+    svg.append("line").attr("x1", x(0)).attr("x2", x(0)).attr("y1", m.t).attr("y2", Hh - m.b).attr("stroke", "var(--ink-2)").attr("stroke-width", 1);
+    g.rows.forEach((r, k) => {
+      const yc = m.t + k * rowH + rowH / 2, row = svg.append("g").style("cursor", "default");
+      row.append("text").attr("x", m.l - 8).attr("y", yc - 2).attr("text-anchor", "end").style("fill", "var(--ink)").text(r.name);
+      row.append("text").attr("x", m.l - 8).attr("y", yc + 11).attr("text-anchor", "end").text(`${r.heads.length} heads`);
+      const x0 = Math.min(x(0), x(r.joint)), bw = Math.abs(x(r.joint) - x(0));
+      row.append("rect").attr("x", x0).attr("y", yc - 9).attr("width", Math.max(bw, 1)).attr("height", 18).attr("rx", 3).attr("fill", "var(--ink-2)").attr("opacity", 0.75);
+      row.append("line").attr("x1", x(r.ci[0])).attr("x2", x(r.ci[1])).attr("y1", yc).attr("y2", yc).attr("stroke", "var(--ink)").attr("stroke-width", 1.5);
+      for (const v of r.ci) row.append("line").attr("x1", x(v)).attr("x2", x(v)).attr("y1", yc - 4).attr("y2", yc + 4).attr("stroke", "var(--ink)").attr("stroke-width", 1.5);
+      row.append("line").attr("x1", x(r.sumSingles)).attr("x2", x(r.sumSingles)).attr("y1", yc - 14).attr("y2", yc + 14)
+        .attr("stroke", "var(--ink)").attr("stroke-width", 2.5).attr("stroke-linecap", "round");
+      // selected head's own effect goes under the diamond so the diamond is never hidden
+      if (sel != null && r.heads.includes(sel)) row.append("circle").attr("cx", x(byCond[c].truth[sel])).attr("cy", yc).attr("r", 5)
+        .attr("fill", "var(--late)").attr("stroke", "var(--surface)").attr("stroke-width", 2);
+      if (r.sumGroups != null) row.append("path").attr("d", d3.symbol(d3.symbolDiamond, 70)())
+        .attr("transform", `translate(${x(r.sumGroups)},${yc})`).attr("fill", "var(--surface)").attr("stroke", "var(--ink)").attr("stroke-width", 1.5);
+      row.append("rect").attr("x", m.l).attr("y", yc - rowH / 2).attr("width", W - m.l - m.r).attr("height", rowH).attr("fill", "transparent")
+        .on("mousemove", ev => showTip(ev, `<b>${r.name}</b> <span class="muted">${cname}, ${g.n} prompts</span><br>` +
+          `Knocked out together: <b>${fmt(r.joint)}</b> <span class="muted">[${fmt2(r.ci[0])}, ${fmt2(r.ci[1])}]</span><br>` +
+          `Sum of single-head effects: <b>${fmt(r.sumSingles)}</b>` +
+          (r.sumGroups != null ? `<br>Name movers + backups, separately: <b>${fmt(r.sumGroups)}</b>` : "") +
+          (sel != null && r.heads.includes(sel) ? `<br>Head ${lab(sel)} alone: <b>${fmt(byCond[c].truth[sel])}</b>` : "") +
+          `<br><span class="muted">${fmt2(100 * r.joint / g.clean)}% of the clean logit difference</span>`))
+        .on("mouseleave", hideTip);
+    });
+  });
+  const lg = d3.select("#t4legend"); lg.selectAll("*").remove();
+  lg.html(`<span><svg width="22" height="12"><rect x="1" y="1" width="20" height="10" rx="2" fill="var(--ink-2)" opacity="0.75"/></svg>Knocked out together (95% CI)</span>` +
+    `<span><svg width="10" height="16"><line x1="5" x2="5" y1="1" y2="15" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round"/></svg>Sum of single-head effects</span>` +
+    `<span><svg width="14" height="14"><path transform="translate(7,7)" d="${d3.symbol(d3.symbolDiamond, 70)()}" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.5"/></svg>The two groups knocked out separately, added</span>` +
+    (sel != null && ["name_movers", "backup_nm"].includes(selRole) ? `<span><i class="sw" style="background:var(--late)"></i>Head ${lab(sel)} on its own</span>` : ""));
+  const P = G.all.rows, B = G.BABA.rows, A = G.ABBA.rows;
+  d3.select("#t4note").html(
+    `Knocking out both groups at once drops the logit difference by <b>${fmt2(P[2].joint)}</b>, about <b>${(P[2].joint / P[2].sumGroups).toFixed(1)}×</b> what the two groups do separately (${fmt2(P[2].sumGroups)}). ` +
+    `The name movers alone change sign with name order: <b>${fmt(B[0].joint)}</b> in BABA prompts and <b>${fmt(A[0].joint)}</b> in ABBA prompts, which averages to ${fmt2(P[0].joint)} pooled.`);
+  const t = d3.select("#t4tbl"); t.selectAll("*").remove();
+  t.append("tr").html("<th>Prompts</th><th>Group</th><th>Together</th><th>95% CI</th><th>Sum of singles</th><th>Groups separately</th>");
+  for (const [c, cname] of CONDS) for (const r of G[c].rows)
+    t.append("tr").html(`<td>${cname}</td><td>${r.name}</td><td>${fmt(r.joint)}</td><td>[${fmt2(r.ci[0])}, ${fmt2(r.ci[1])}]</td><td>${fmt(r.sumSingles)}</td><td>${r.sumGroups != null ? fmt(r.sumGroups) : ""}</td>`);
+}
+
 let byCond = {};
 function select(i) { state.sel = state.sel === i ? null : i; render(); }
-function render() { stats = byCond[state.cond]; drawGrids(); drawScatter(); drawDetail(); drawTable(); }
+function render() { stats = byCond[state.cond]; drawGrids(); drawScatter(); drawDetail(); drawGroups(); drawTable(); }
 
 function seg(id, key) {
   d3.selectAll(`#${id} button`).on("click", function () {
@@ -388,6 +508,7 @@ d3.json(DATA_URL).then(d => {
   for (const [r, hs] of Object.entries(d.roles)) for (const h of hs) { const [l, k] = h.split(".").map(Number); role[l * H + k] = r; }
   role[2 * H + 2] = "previous_token"; role[4 * H + 11] = "previous_token";  // Wang et al. 2023, not in the pipeline's role list
   for (const c of ["all", "BABA", "ABBA"]) byCond[c] = compute(c);
+  groupStats = computeGroups();
   d3.select("#nprompts").text(`${prompts.length} prompts from ${new Set(prompts.map(p => p.tpl)).size} templates in two name orders.`);
   d3.select("#method").selectAll("option").data(METHODS.filter(m => m.key !== "truth")).join("option")
     .attr("value", m => m.key).text(m => m.name);
@@ -395,7 +516,7 @@ d3.json(DATA_URL).then(d => {
   d3.select("#stage").on("change", function () { state.stage = this.value; render(); });
   seg("cond", "cond"); seg("colormode", "colormode");
   render();
-  addEventListener("resize", () => drawScatter());
+  addEventListener("resize", () => { drawScatter(); drawGroups(); });
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
 }).catch(e => d3.select("#err").text(`Could not load ${DATA_URL}. Serve the repo root with "python3 -m http.server" and open /frontend/. (${e})`));
 </script>
