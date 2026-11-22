@@ -23,6 +23,10 @@ Tests, with 95% bootstrap intervals over prompts (500 resamples, numpy seed 0):
   2b. contrast: the same count for every head whose ranks differ by 2x or more, against the heads
      (same top-30 pool) whose ranks are within 2x, with a one-sided Fisher exact test. A check
      only explains disagreements if it breaks more often where the method disagrees.
+  2c. robustness of 2b: the same test under 27 choices of cutoffs (pool: top 20/30/40; misranked:
+     ranks 1.5x/2x/3x apart; broken: violation above 0.3/0.5/0.7), counting how often the
+     misranked heads break more often (direction) and how often p < 0.1; plus a bootstrap over
+     prompts (300 resamples) of the difference in broken rates at the default cutoffs.
   3. layer control: every method's agreement with patching as plain Spearman, as a partial
      Spearman with layer held out, and as within-layer Spearman averaged over layers.
   4. rank intervals for every head under every method (for the page).
@@ -150,6 +154,27 @@ def analyse(task):
         p = fisher_exact([[bd, nd - bd], [ba, na - ba]], alternative="greater")[1] if nd and na else None
         contrast[meth] = {"assumption": vk, "broken_where_disagree": bd, "n_disagree": nd, "broken_where_agree": ba, "n_agree": na,
                           "fisher_p_one_sided": None if p is None else round(float(p), 4)}
+    def ctab(mm, vv, meth, vk, top, gap, thr):
+        rm, rr = ranks(mm[meth]), ranks(mm["full"]); g = np.abs(np.log2(rm) - np.log2(rr))
+        ok = ((rm <= top) | (rr <= top)) & ~np.isnan(vv[vk]); br = vv[vk] > thr
+        dI, aI = ok & (g >= np.log2(gap)), ok & (g < np.log2(gap))
+        return int((br & dI).sum()), int(dI.sum()), int((br & aI).sum()), int(aI.sum())
+    rb = np.random.default_rng(1); bsamp = [rb.integers(0, n, n) for _ in range(300)]; bmeas = [measures(X, s)[:2] for s in bsamp]
+    for vk, meth in METHOD_OF.items():
+        dirn = sig = tot = 0
+        for top in (20, 30, 40):
+            for gap in (1.5, 2, 3):
+                for thr in (0.3, 0.5, 0.7):
+                    bd, nd, ba, na = ctab(m, v, meth, vk, top, gap, thr)
+                    if not (nd and na): continue
+                    tot += 1; dirn += bd / nd > ba / na
+                    sig += fisher_exact([[bd, nd - bd], [ba, na - ba]], alternative="greater")[1] < 0.1
+        diffs = []
+        for mm, vv in bmeas:
+            bd, nd, ba, na = ctab(mm, vv, meth, vk, TOP, 2, 0.5)
+            if nd and na: diffs.append(bd / nd - ba / na)
+        contrast[meth]["robustness"] = {"settings": tot, "misranked_break_more": int(dirn), "p_below_0.1": int(sig),
+                                        "boot_diff_ci95": ci(diffs) if len(diffs) >= 50 else None, "boot_n": len(diffs)}
     res["contrast"] = contrast
     # layer control, against noising (the reference the checks use) and denoising
     lc = {}
@@ -201,7 +226,10 @@ for task in ("ioi", "gt"):
     cols = list(METHOD_OF.values()); print(" " * 12 + "".join(f"{c:>12s}" for c in cols))
     for vk, d in res["matching"].items(): print(f"{vk:12s}" + "".join(f"{d[c]:12.3f}" for c in cols))
     print("contrast (violation > 0.5 where ranks are 2x apart vs within 2x):")
-    for meth, c in res["contrast"].items(): print(f"  {meth:9s} {c['broken_where_disagree']}/{c['n_disagree']} vs {c['broken_where_agree']}/{c['n_agree']}  Fisher p = {c['fisher_p_one_sided']}")
+    for meth, c in res["contrast"].items():
+        r = c["robustness"]
+        print(f"  {meth:9s} {c['broken_where_disagree']}/{c['n_disagree']} vs {c['broken_where_agree']}/{c['n_agree']}  Fisher p = {c['fisher_p_one_sided']}"
+              f"  | 27 cutoffs: direction {r['misranked_break_more']}/{r['settings']}, p<0.1 {r['p_below_0.1']}/{r['settings']}; bootstrap diff {r['boot_diff_ci95']} ({r['boot_n']} resamples)")
     for meth, t in res["top10_disagreements"].items():
         print(f"top-10 disagreements, {meth}: {t['n_with_violation_over_0.5']}/{t['n_checked']} with {t['assumption']} violation > 0.5:",
               [(h['head'], h['rank_method'], h['rank_patching'], h['violation']) for h in t['heads'][:6]])

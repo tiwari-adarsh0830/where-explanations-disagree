@@ -386,7 +386,17 @@
     "n_disagree": 40,
     "broken_where_agree": 0,
     "n_agree": 7,
-    "fisher_p_one_sided": 0.0535
+    "fisher_p_one_sided": 0.0535,
+    "robustness": {
+     "settings": 27,
+     "misranked_break_more": 27,
+     "p_below_0.1": 8,
+     "boot_diff_ci95": [
+      0.237,
+      0.45
+     ],
+     "boot_n": 300
+    }
    },
    "dla": {
     "assumption": "direct",
@@ -394,7 +404,17 @@
     "n_disagree": 30,
     "broken_where_agree": 8,
     "n_agree": 13,
-    "fisher_p_one_sided": 0.5867
+    "fisher_p_one_sided": 0.5867,
+    "robustness": {
+     "settings": 27,
+     "misranked_break_more": 14,
+     "p_below_0.1": 9,
+     "boot_diff_ci95": [
+      -0.16,
+      0.271
+     ],
+     "boot_n": 300
+    }
    },
    "attr": {
     "assumption": "linearity",
@@ -402,7 +422,17 @@
     "n_disagree": 7,
     "broken_where_agree": 3,
     "n_agree": 27,
-    "fisher_p_one_sided": 0.0204
+    "fisher_p_one_sided": 0.0204,
+    "robustness": {
+     "settings": 27,
+     "misranked_break_more": 27,
+     "p_below_0.1": 27,
+     "boot_diff_ci95": [
+      0.315,
+      0.873
+     ],
+     "boot_n": 300
+    }
    },
    "denoise": {
     "assumption": "redundancy",
@@ -410,7 +440,17 @@
     "n_disagree": 17,
     "broken_where_agree": 7,
     "n_agree": 7,
-    "fisher_p_one_sided": 1.0
+    "fisher_p_one_sided": 1.0,
+    "robustness": {
+     "settings": 27,
+     "misranked_break_more": 9,
+     "p_below_0.1": 0,
+     "boot_diff_ci95": [
+      0.0,
+      0.0
+     ],
+     "boot_n": 300
+    }
    }
   },
   "layer_control": {
@@ -837,7 +877,17 @@
     "n_disagree": 28,
     "broken_where_agree": 5,
     "n_agree": 16,
-    "fisher_p_one_sided": 0.254
+    "fisher_p_one_sided": 0.254,
+    "robustness": {
+     "settings": 27,
+     "misranked_break_more": 24,
+     "p_below_0.1": 10,
+     "boot_diff_ci95": [
+      0.001,
+      0.269
+     ],
+     "boot_n": 300
+    }
    },
    "dla": {
     "assumption": "direct",
@@ -845,7 +895,17 @@
     "n_disagree": 40,
     "broken_where_agree": 6,
     "n_agree": 8,
-    "fisher_p_one_sided": 0.2582
+    "fisher_p_one_sided": 0.2582,
+    "robustness": {
+     "settings": 27,
+     "misranked_break_more": 21,
+     "p_below_0.1": 0,
+     "boot_diff_ci95": [
+      -0.091,
+      0.353
+     ],
+     "boot_n": 300
+    }
    },
    "attr": {
     "assumption": "linearity",
@@ -853,7 +913,17 @@
     "n_disagree": 0,
     "broken_where_agree": 3,
     "n_agree": 33,
-    "fisher_p_one_sided": null
+    "fisher_p_one_sided": null,
+    "robustness": {
+     "settings": 12,
+     "misranked_break_more": 8,
+     "p_below_0.1": 4,
+     "boot_diff_ci95": [
+      0.903,
+      1.0
+     ],
+     "boot_n": 64
+    }
    },
    "denoise": {
     "assumption": "redundancy",
@@ -861,7 +931,17 @@
     "n_disagree": 7,
     "broken_where_agree": 17,
     "n_agree": 17,
-    "fisher_p_one_sided": 1.0
+    "fisher_p_one_sided": 1.0,
+    "robustness": {
+     "settings": 27,
+     "misranked_break_more": 0,
+     "p_below_0.1": 0,
+     "boot_diff_ci95": [
+      -0.167,
+      0.0
+     ],
+     "boot_n": 300
+    }
    }
   },
   "layer_control": {
