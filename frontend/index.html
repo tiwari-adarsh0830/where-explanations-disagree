@@ -97,6 +97,15 @@ details summary { cursor: pointer; font-weight: 600; }
 #t4tbl th, #t4tbl td { padding: 4px 8px; border-bottom: 1px solid var(--grid); text-align: right; }
 #t4tbl th { color: var(--ink-2); font-weight: 600; }
 #t4tbl td:first-child, #t4tbl th:first-child, #t4tbl td:nth-child(2), #t4tbl th:nth-child(2) { text-align: left; }
+.t5wrap { overflow-x: auto; }
+.t5legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--ink-2); margin: 8px 0 4px; }
+.t5legend span { display: inline-flex; align-items: center; gap: 6px; }
+#t5 svg text.tpl { fill: var(--ink-2); font-size: 11.5px; }
+#t5 svg text.ph { fill: var(--ink); font-size: 12px; font-weight: 600; }
+#t5tbl { border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; margin-top: 8px; }
+#t5tbl th, #t5tbl td { padding: 3px 8px; border-bottom: 1px solid var(--grid); text-align: right; }
+#t5tbl th { color: var(--ink-2); font-weight: 600; }
+#t5tbl td:first-child, #t5tbl th:first-child, #t5tbl td:nth-child(2), #t5tbl th:nth-child(2) { text-align: left; }
 </style>
 </head>
 <body>
@@ -161,6 +170,17 @@ details summary { cursor: pointer; font-weight: 600; }
     <details style="margin-top:10px">
       <summary>Table view (group knockouts)</summary>
       <table id="t4tbl"></table>
+    </details>
+  </section>
+
+  <section class="card" id="templates">
+    <h2>Does it hold across sentence templates?</h2>
+    <p class="hint">One row per IOI template, with 4 prompts in each name order (S = repeated subject, IO = indirect object, the right answer). Filled dots are BABA prompts, hollow dots ABBA, joined so the gap between orders is easy to see. The vertical line is the value over all 120 prompts. Agreement uses the method picked in the scatter above. Select a head to add its own patching effect per template. With 4 prompts per dot, single dots are noisy: look for patterns across rows.</p>
+    <div class="t5legend" id="t5legend"></div>
+    <div class="t5wrap"><div id="t5"></div></div>
+    <details style="margin-top:10px">
+      <summary>Table view (per template)</summary>
+      <div class="tablewrap"><table id="t5tbl"></table></div>
     </details>
   </section>
 
@@ -491,9 +511,90 @@ function drawGroups() {
     t.append("tr").html(`<td>${cname}</td><td>${r.name}</td><td>${fmt(r.joint)}</td><td>[${fmt2(r.ci[0])}, ${fmt2(r.ci[1])}]</td><td>${fmt(r.sumSingles)}</td><td>${r.sumGroups != null ? fmt(r.sumGroups) : ""}</td>`);
 }
 
+// ---------- T5: per template ----------
+let tplStats = null, TEMPLATES = null;
+const tplShort = t => t.replace(/\[B\]/g, "S").replace(/\[A\]/g, "IO").replace(/\[PLACE\]/g, "PLACE").replace(/\[OBJECT\]/g, "OBJECT");
+function computeTemplates() {
+  const cells = [];
+  const tpls = [...new Set(prompts.map(p => p.tpl))].sort((a, b) => a - b);
+  for (const t of tpls) for (const o of ["BABA", "ABBA"]) {
+    const ps = prompts.filter(p => p.tpl === t && p.order === o), n = ps.length;
+    const m = { attn_end: new Array(NH).fill(0), attn_best: null, dla: new Array(NH).fill(0), attr: new Array(NH).fill(0), truth: new Array(NH).fill(0) };
+    const A = Array.from({ length: NH }, () => new Array(D.pairs.length).fill(0));
+    for (const p of ps) for (let i = 0; i < NH; i++) {
+      for (let j = 0; j < D.pairs.length; j++) A[i][j] += p.attn[i][j] / n;
+      m.dla[i] += p.dla[i] / n; m.attr[i] += p.attr[i] / n; m.truth[i] += p.truth[i] / n;
+    }
+    m.attn_end = A.map(r => r[0]); m.attn_best = A.map(r => d3.max(r));
+    const rho = {}; for (const k of ["attn_end", "attn_best", "dla", "attr"]) rho[k] = spearman(m[k], m.truth);
+    cells.push({ tpl: t, order: o, n, clean: d3.mean(ps, p => p.logit_diff), nm: d3.mean(ps, p => p.group_drop.name_movers), rho, truth: m.truth });
+  }
+  return { tpls, cells };
+}
+function drawTemplates() {
+  const T = tplStats, wrap = d3.select("#t5"); wrap.selectAll("*").remove();
+  const sel = state.sel, mname = METHODS.find(d => d.key === state.method).short;
+  const showO = state.cond === "all" ? ["BABA", "ABBA"] : [state.cond];
+  const cell = (t, o) => T.cells.find(c => c.tpl === t && c.order === o);
+  const panels = [
+    { key: "clean", title: "Clean logit difference", get: c => c.clean, all: byCond.all.n ? d3.mean(prompts, p => p.logit_diff) : 0, zero: true },
+    { key: "rho", title: `ρ vs patching: ${mname}`, get: c => c.rho[state.method], all: byCond.all.rho[state.method], zero: true, max1: true },
+    { key: "nm", title: "Name-mover knockout effect", get: c => c.nm, all: groupStats.all.rows[0].joint, zero: true },
+  ];
+  if (sel != null) panels.push({ key: "head", title: `Head ${lab(sel)} patching effect`, get: c => c.truth[sel], all: byCond.all.truth[sel], zero: true });
+  const labelW = 300, pw = 210, gap = 26, rowH = 22, top = 40, bottom = 26;
+  const W = labelW + panels.length * (pw + gap), Hh = top + T.tpls.length * rowH + bottom;
+  const svg = wrap.append("svg").attr("width", W).attr("height", Hh).attr("role", "img").attr("aria-label", "Per-template summary");
+  T.tpls.forEach((t, r) => {
+    const y = top + r * rowH + rowH / 2;
+    if (r % 2 === 0) svg.append("rect").attr("x", 0).attr("y", y - rowH / 2).attr("width", W).attr("height", rowH).attr("fill", "var(--grid)").attr("opacity", 0.35);
+    const full = tplShort(TEMPLATES[t]), short = full.length > 44 ? full.slice(0, 43) + "…" : full;
+    svg.append("text").attr("class", "tpl").attr("x", 4).attr("y", y + 4).text(`T${t + 1}  ${short}`);
+  });
+  panels.forEach((P, k) => {
+    const x0 = labelW + k * (pw + gap), vals = T.cells.map(P.get).concat([P.all]);
+    let lo = d3.min(vals), hi = d3.max(vals);
+    if (P.zero) { lo = Math.min(0, lo); hi = Math.max(0, hi); }
+    if (P.max1) hi = Math.max(hi, Math.min(1, hi + 0.05));
+    const x = d3.scaleLinear().domain([lo, hi]).nice(4).range([x0, x0 + pw]);
+    const g = svg.append("g");
+    g.append("text").attr("class", "ph").attr("x", x0).attr("y", 14).text(P.title.length > 34 ? P.title.slice(0, 33) + "…" : P.title)
+      .append("title").text(P.title);
+    g.append("g").attr("class", "gridline").selectAll("line").data(x.ticks(4)).join("line")
+      .attr("x1", d => x(d)).attr("x2", d => x(d)).attr("y1", top - 6).attr("y2", Hh - bottom);
+    g.append("g").attr("class", "axis").attr("transform", `translate(0,${Hh - bottom})`).call(d3.axisBottom(x).ticks(4).tickSize(3));
+    if (P.zero && lo < 0) g.append("line").attr("x1", x(0)).attr("x2", x(0)).attr("y1", top - 6).attr("y2", Hh - bottom).attr("stroke", "var(--ink-2)");
+    g.append("line").attr("x1", x(P.all)).attr("x2", x(P.all)).attr("y1", top - 10).attr("y2", Hh - bottom)
+      .attr("stroke", "var(--ink)").attr("stroke-width", 1.5).attr("opacity", 0.55);
+    g.append("text").attr("x", x(P.all)).attr("y", top - 13).attr("text-anchor", "middle").style("font-size", "10px").text(`all ${fmt2(P.all)}`);
+    T.tpls.forEach((t, r) => {
+      const y = top + r * rowH + rowH / 2, cb = cell(t, "BABA"), ca = cell(t, "ABBA");
+      if (showO.length === 2) g.append("line").attr("x1", x(P.get(cb))).attr("x2", x(P.get(ca))).attr("y1", y).attr("y2", y).attr("stroke", "var(--muted)").attr("stroke-width", 1.5);
+      if (showO.includes("BABA")) g.append("circle").attr("cx", x(P.get(cb))).attr("cy", y).attr("r", 4.5).attr("fill", "var(--ink-2)").attr("stroke", "var(--surface)").attr("stroke-width", 1.5);
+      if (showO.includes("ABBA")) g.append("circle").attr("cx", x(P.get(ca))).attr("cy", y).attr("r", 4.5).attr("fill", "var(--surface)").attr("stroke", "var(--ink)").attr("stroke-width", 1.5);
+    });
+  });
+  // one hover target per row covering all panels
+  T.tpls.forEach((t, r) => {
+    const y = top + r * rowH, cb = cell(t, "BABA"), ca = cell(t, "ABBA");
+    svg.append("rect").attr("x", 0).attr("y", y).attr("width", W).attr("height", rowH).attr("fill", "transparent")
+      .on("mousemove", ev => showTip(ev, `<b>T${t + 1}</b> <span class="muted">${tplShort(TEMPLATES[t])} → IO</span><br>` +
+        `<span class="muted">BABA (${cb.n}) / ABBA (${ca.n})</span><br>` +
+        panels.map(P => `${P.title}: <b>${fmt2(P.get(cb))}</b> / <b>${fmt2(P.get(ca))}</b>`).join("<br>")))
+      .on("mouseleave", hideTip);
+  });
+  d3.select("#t5legend").html(
+    `<span><svg width="12" height="12"><circle cx="6" cy="6" r="4.5" fill="var(--ink-2)"/></svg>BABA prompts</span>` +
+    `<span><svg width="12" height="12"><circle cx="6" cy="6" r="4.5" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.5"/></svg>ABBA prompts</span>` +
+    `<span><svg width="10" height="14"><line x1="5" x2="5" y1="1" y2="13" stroke="var(--ink)" stroke-width="1.5" opacity="0.55"/></svg>All 120 prompts</span>`);
+  const t = d3.select("#t5tbl"); t.selectAll("*").remove();
+  t.append("tr").html(`<th>Template</th><th>Order</th><th>n</th>` + panels.map(P => `<th>${P.title}</th>`).join(""));
+  for (const c of T.cells) t.append("tr").html(`<td>T${c.tpl + 1}</td><td>${c.order}</td><td>${c.n}</td>` + panels.map(P => `<td>${fmt2(P.get(c))}</td>`).join(""));
+}
+
 let byCond = {};
 function select(i) { state.sel = state.sel === i ? null : i; render(); }
-function render() { stats = byCond[state.cond]; drawGrids(); drawScatter(); drawDetail(); drawGroups(); drawTable(); }
+function render() { stats = byCond[state.cond]; drawGrids(); drawScatter(); drawDetail(); drawGroups(); drawTemplates(); drawTable(); }
 
 function seg(id, key) {
   d3.selectAll(`#${id} button`).on("click", function () {
@@ -503,12 +604,13 @@ function seg(id, key) {
   });
 }
 
-d3.json(DATA_URL).then(d => {
-  D = d; prompts = d.prompts;
+Promise.all([d3.json(DATA_URL), d3.json("../data/ioi_lists.json")]).then(([d, lists]) => {
+  D = d; prompts = d.prompts; TEMPLATES = lists.BABA_TEMPLATES;
   for (const [r, hs] of Object.entries(d.roles)) for (const h of hs) { const [l, k] = h.split(".").map(Number); role[l * H + k] = r; }
   role[2 * H + 2] = "previous_token"; role[4 * H + 11] = "previous_token";  // Wang et al. 2023, not in the pipeline's role list
   for (const c of ["all", "BABA", "ABBA"]) byCond[c] = compute(c);
   groupStats = computeGroups();
+  tplStats = computeTemplates();
   d3.select("#nprompts").text(`${prompts.length} prompts from ${new Set(prompts.map(p => p.tpl)).size} templates in two name orders.`);
   d3.select("#method").selectAll("option").data(METHODS.filter(m => m.key !== "truth")).join("option")
     .attr("value", m => m.key).text(m => m.name);
