@@ -46,9 +46,10 @@ roles["previous_token"] = [idx("2.2"), idx("4.11")]  # Wang et al. 2023, not in 
 role_of = {i: r for r, hs in roles.items() for i in hs}
 
 def rho(score, ref): return float(spearmanr(np.abs(score), np.abs(ref)).correlation)
-def top10(score, ref): return len(set(np.argsort(-np.abs(ref))[:10]) & set(np.argsort(-np.abs(score))[:10]))
+# stable sorts: exact ties (for example two heads with zero attention) get the same order on every numpy version
+def top10(score, ref): return len(set(np.argsort(-np.abs(ref), kind="stable")[:10]) & set(np.argsort(-np.abs(score), kind="stable")[:10]))
 def ranks(score):
-    r = np.empty(144, int); r[np.argsort(-np.abs(score))] = np.arange(1, 145); return r
+    r = np.empty(144, int); r[np.argsort(-np.abs(score), kind="stable")] = np.arange(1, 145); return r
 
 # every per-head score, as a function of a set of prompts
 METHODS = {

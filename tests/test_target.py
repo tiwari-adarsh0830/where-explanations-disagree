@@ -20,7 +20,25 @@ with sync_playwright() as p:
         print("   evidence (reads target):", pg.inner_text("#evstat"))
         pg.locator("#intsvg rect.ic").nth(5).click(force=True); pg.wait_for_timeout(300)
         print("   pinned:", pg.inner_text("#intpair")[:220])
-        print("   mismatches: 0" if rows >= 5 and target else "   mismatches: 1")
+        # corrected p-values and split-half results on the page must match the summary file, and the intro must follow them
+        summ = json.load(open(os.path.join(R, "results/gt/diagnostics_summary.json" if "gt" in url else "results/diagnostics_summary.json")))
+        hdr = pg.eval_on_selector_all("#contrasttbl tr:first-child th", "l => l.map(x => x.innerText)")
+        cells = {r[0]: r for r in pg.eval_on_selector_all("#contrasttbl tr", "rs => rs.slice(1).map(r => [...r.children].map(c => c.innerText))")}
+        bad = 0
+        for vk, row in (("linearity", "Attribution patching"), ("direct", "DLA")):
+            V = summ["contrast"][vk].get("validity")
+            if V and row in cells:
+                want = "p < 0.001" if V["holm_p"] < 0.001 else f"p = {V['holm_p']:.{3 if V['holm_p'] < 0.1 else 2}f}"
+                bad += cells[row][hdr.index("corrected p")] != want
+                sh = V["split_half"]; bad += sh is not None and cells[row][hdr.index("split-half")] != f"same direction {sh['misranked_break_more']}/{sh['tests']}, p < 0.1 in {sh['p_below_0.1']}"
+        intro = [t for t in pg.eval_on_selector_all("#introfind li", "l => l.map(x => x.innerText)") if "checkable" in t][0]
+        if "gt" not in url:
+            bad += "Checks that separate right from wrong: for attribution patching" not in intro
+            bad += "Pointing the right way, but weakly: for final-token attention" not in intro
+        else:
+            bad += "Checks that separate" in intro
+        print("   corrected p column and intro:", "ok" if not bad else f"{bad} problem(s)")
+        print(f"   mismatches: {int(not (rows >= 5 and target)) + bad}")
         pg.close()
     b.close()
 print("console errors:", errs)

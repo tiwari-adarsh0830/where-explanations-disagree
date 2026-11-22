@@ -69,6 +69,8 @@ h2 { font-size: 15px; margin: 0 0 2px; font-weight: 600; }
 .why .vbar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: var(--ink-2); }
 .btn { font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--ink); cursor: pointer; }
 .checksrow { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }
+.checksrow > div { min-width: 0; max-width: 100%; }
+#matchwrap { overflow-x: auto; }   /* the contrast table has seven columns; on a phone it scrolls inside the card */
 .vgrid h3 { font-size: 12.5px; margin: 0 0 2px; color: var(--ink); font-weight: 600; }
 .vgrid p { font-size: 11.5px; color: var(--muted); margin: 0 0 4px; max-width: 290px; }
 table.match { border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
@@ -492,6 +494,7 @@ let ATTN_GROUPS = null;
 const L = 12, H = 12, NH = 144;
 const lab = i => `${Math.floor(i / H)}.${i % H}`;
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const pval = p => p == null ? "" : p < 0.001 ? "< 0.001" : `= ${p.toFixed(p < 0.1 ? 3 : 2)}`;   // "p = 0.034" without the p, for running text
 const ROLE_NAME = TASK.roleName, STAGE_OF = TASK.stageOf, STAGE_NAME = TASK.stageName, PAIR_NAME = TASK.pairName;
 const METHODS = [
   { key: "attn_end", name: TASK.attnEnd.name, short: TASK.attnEnd.short },
@@ -956,10 +959,11 @@ function drawIntro() {
     const sep = [], dir = [], all = [];
     for (const [k, nm, what] of [["position", "final-token attention", "the head acts at the final token"], ["target", "final-token attention", `what it reads at ${TASK.endTarget} carries its effect`], ["linearity", "attribution patching", "the effect is linear"], ["direct", "DLA", "the effect is direct"], ["redundancy", "single-head patching", "no other head changes the effect"]]) {
       const c = t[k]; if (!c || !c.n_agree) continue; const r = c.robustness || { settings: 27, misranked_break_more: 0, "p_below_0.1": 0 };
-      const steady = r.misranked_break_more >= 0.85 * r.settings;
-      if (c.n_disagree && steady && r["p_below_0.1"] >= 0.5 * r.settings) sep.push(`for ${nm}, “${what}” fails for ${fr(k)} (significant under ${r["p_below_0.1"]} of ${r.settings} cutoff choices, same direction under ${r.misranked_break_more})`);
+      const steady = r.misranked_break_more >= 0.85 * r.settings, V = c.validity;
+      const strong = V ? V.holm_p < 0.05 : r["p_below_0.1"] >= 0.5 * r.settings;
+      if (c.n_disagree && steady && strong) sep.push(`for ${nm}, “${what}” fails for ${fr(k)} (same direction under ${r.misranked_break_more} of ${r.settings} cutoff choices${V && V.split_half ? ` and ${V.split_half.misranked_break_more} of ${V.split_half.tests} split-half tests` : ""}; p ${pval(V ? V.holm_p : c.fisher_p_one_sided)} after correcting for the number of tests)`);
       else if (c.broken_where_agree / c.n_agree >= 0.5) all.push(`${nm}'s “${what}” (fails for ${c.broken_where_agree} of the ${c.n_agree} heads it gets right)`);
-      else if (c.n_disagree && steady) dir.push(`for ${nm}, “${what}” fails for ${fr(k)}; the direction holds under ${r.misranked_break_more} of ${r.settings} cutoff choices but is significant in only ${r["p_below_0.1"]}`);
+      else if (c.n_disagree && steady) dir.push(`for ${nm}, “${what}” fails for ${fr(k)}; the direction holds under ${r.misranked_break_more} of ${r.settings} cutoff choices${V && V.split_half ? ` and ${V.split_half.misranked_break_more} of ${V.split_half.tests} split-half tests` : ""}, but ${V ? `after correcting for the number of tests p ${pval(V.holm_p)}, so this is consistent rather than significant` : `it is significant under only ${r["p_below_0.1"]}`}`);
     }
     items.push(`<b>Some disagreements have a checkable reason, and some agreements prove little.</b> ` +
       (sep.length ? `Checks that separate right from wrong: ${sep.join("; ")}. ` : "") +
@@ -1131,15 +1135,15 @@ function drawChecks() {
     const names = { attn_end: "Final-token attention", dla: "DLA", attr: "Attribution patching", denoise: "Denoising" };
     const pf = p => p == null ? "" : p < 0.001 ? "p < 0.001" : `p = ${p.toFixed(p < 0.1 ? 3 : 2)}`;
     const tb = d3.select("#matchwrap").append("table").attr("class", "match").attr("id", "contrasttbl").style("margin-top", "14px");
-    tb.append("tr").html(`<th style="text-align:left">assumption breaks (violation > 0.5) for…</th><th>heads it misranks</th><th>heads it gets right</th><th>Fisher</th><th>over 27 cutoff choices</th>`);
+    tb.append("tr").html(`<th style="text-align:left">assumption breaks (violation > 0.5) for…</th><th>heads it misranks</th><th>heads it gets right</th><th>Fisher</th><th>corrected p</th><th>over 27 cutoff choices</th><th>split-half</th>`);
     const rowsC = activeChecks().map(c => [c, contrastOf(c)]);
     if (DG.contrast.position_or_target) rowsC.splice(2, 0, [{ v: "position_or_target", method: "attn_end" }, DG.contrast.position_or_target]);
     for (const [c, t] of rowsC) { if (!t) continue;
-      const sep = t.fisher_p_one_sided != null && t.fisher_p_one_sided < 0.1;
+      const V = t.validity, sep = V ? V.holm_p < 0.05 : t.fisher_p_one_sided != null && t.fisher_p_one_sided < 0.1;
       const rowName = c.method === "attn_end" && DG.violations.target ? `${names[c.method]} <span class="ranks">(${c.v === "position_or_target" ? "either check" : CHECK_SHORT[c.v]})</span>` : names[c.method];
-      tb.append("tr").html(`<th style="text-align:left">${rowName}</th><td>${t.n_disagree ? `${t.broken_where_disagree} of ${t.n_disagree}` : "none misranked"}</td><td>${t.broken_where_agree} of ${t.n_agree}</td><td class="${sep ? "diag" : ""}">${pf(t.fisher_p_one_sided)}</td><td>${t.robustness ? `same direction ${t.robustness.misranked_break_more}/${t.robustness.settings}, p < 0.1 in ${t.robustness["p_below_0.1"]}` : ""}</td>`); }
+      tb.append("tr").html(`<th style="text-align:left">${rowName}</th><td>${t.n_disagree ? `${t.broken_where_disagree} of ${t.n_disagree}` : "none misranked"}</td><td>${t.broken_where_agree} of ${t.n_agree}</td><td>${pf(t.fisher_p_one_sided)}</td><td class="${sep ? "diag" : ""}">${V ? pf(V.holm_p) : "–"}</td><td>${t.robustness ? `same direction ${t.robustness.misranked_break_more}/${t.robustness.settings}, p < 0.1 in ${t.robustness["p_below_0.1"]}` : ""}</td><td>${V && V.split_half ? `same direction ${V.split_half.misranked_break_more}/${V.split_half.tests}, p < 0.1 in ${V.split_half["p_below_0.1"]}` : "–"}</td>`); }
     d3.select("#matchwrap").append("p").attr("class", "hint").style("margin-top", "4px").style("max-width", "360px").text(
-      "Heads in the top 30 for either score whose patching effect is at least 2% of the largest (below that the violation is a ratio of two near-zero numbers). Misranked: ranks at least 2× apart; right: within 2×. A check explains disagreements only if it breaks more often for the misranked heads (one-sided Fisher exact test, outlined below 0.1). The last column repeats the test with the pool at the top 20, 30 or 40, misranked meaning 1.5×, 2× or 3× apart, and broken meaning a violation above 0.3, 0.5 or 0.7. Where an assumption breaks for nearly every head either way, agreement with patching on a head proves little.");
+      "Heads in the top 30 for either score whose patching effect is at least 2% of the largest (below that the violation is a ratio of two near-zero numbers). Misranked: ranks at least 2× apart; right: within 2×. A check explains disagreements only if it breaks more often for the misranked heads (one-sided Fisher exact test). Corrected p: a one-sided Mann-Whitney test on the violation scores, Holm-adjusted for the number of tests (the eight planned ones; ten for the later “reads the target” check), outlined below 0.05. “Over 27 cutoff choices” repeats the Fisher test with the pool at the top 20, 30 or 40, misranked meaning 1.5×, 2× or 3× apart, and broken meaning a violation above 0.3, 0.5 or 0.7. Split-half decides which heads are misranked on one half of the prompts and measures the violations on the other (200 splits, both ways round), so shared noise cannot create the link. Where an assumption breaks for nearly every head either way, agreement with patching on a head proves little.");
   }
 }
 // What a pair interaction means depends on the signs of the two single effects. Two heads that push the same way: together bigger

@@ -1,3 +1,9 @@
-torch
-transformer_lens>=3,<4
-scipy
+# Exact versions behind the committed results (MacBook, Python 3.13, CPU). Nov 22: the analysis scripts reproduce every
+# committed result file exactly in a fresh environment with these numpy and scipy versions; the model scripts reproduce
+# diagnostics.py exactly and attention_patterns.py to the saved rounding (1e-4).
+# TransformerLens 4.x removed HookedTransformer, so it must stay on 3.x.
+torch==2.15.0
+transformer_lens==3.9.0
+transformers==5.22.1
+numpy==2.5.4
+scipy==1.18.1
