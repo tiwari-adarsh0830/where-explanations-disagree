@@ -113,6 +113,16 @@ The result is mixed, and we report it that way. Every number below also comes wi
 - Vaidyanathan et al. 2026, *The Curse of Multiple Mediators: Hidden Interaction Effects in Activation Patching*
 - Zhang & Nanda 2024, *Towards Best Practices of Activation Patching in Language Models: Metrics and Methods* (ICLR)
 - Heimersheim & Nanda 2024, *How to use and interpret activation patching*
+- Zhang & Wang 2026, *When Attribution Patching Lies: Diagnosis and a Second-Order Correction* (NeurIPS)
+- Kramár et al. 2024, *AtP\*: An efficient and scalable method for localizing LLM behaviour to components*; Syed, Rager & Conmy 2023, *Attribution Patching Outperforms Automated Circuit Discovery*
+- McGrath et al. 2023, *The Hydra Effect: Emergent Self-repair in Language Model Computations*; Rushing & Nanda 2024, *Explorations of Self-Repair in Language Models* (ICML)
+- *An Adversarial Example for Direct Logit Attribution: Memory Management in gelu-4l* (BlackboxNLP 2024, arXiv 2310.07325)
+- Hanna, Pezzelle & Belinkov 2024, *Have Faith in Faithfulness: Going Beyond Circuit Overlap When Finding Model Mechanisms* (COLM)
+- Neely et al. 2022, *A Song of (Dis)agreement: Evaluating the Evaluation of Explainable Artificial Intelligence in Natural Language Processing*
+- Kadir & Sonntag 2026, *What Do Visual-Head Discovery Scores Actually Find?* (arXiv 2610.13111)
+- HeadVis: An Interactive Tool For Investigating Attention Heads (transformer-circuits.pub, 2026)
+
+How our results sit against these: each single diagnostic we run has precedent (attribution patching's nonlinearity, interaction effects in patching, DLA missing indirect and compensated effects, and the general point that agreement between methods is not evidence of faithfulness). What we add is narrower: for each method, on the heads where it agrees with patching, we test with an independent intervention whether the assumption it relies on holds there, and compare those heads with the ones it misranks. We also put all of it in one tool.
 
 ## AI use
 
