@@ -9,7 +9,7 @@ Explanation methods for language models don't always agree. Attention maps, logi
 
 We're starting with GPT-2 small on the indirect object identification (IOI) task. Wang et al. (2023) already mapped the circuit GPT-2 uses for it, so we have something to compare against.
 
-**Status:** in progress. The proposal was approved in October and the project update went in on Nov 3. Pipeline v3 and the analysis are done, and the D3 tool has three working views so far.
+**Status:** in progress. The proposal was approved in October and the project update went in on Nov 3. Pipeline v3 and the analysis are done, and the D3 tool has five working views so far.
 
 ## What's in here
 
@@ -38,9 +38,10 @@ TransformerLens 4.x removed `HookedTransformer`, which the IOI code and most tut
 ```
 python pipeline/ioi_check_v3.py data/ioi_lists.json results/ioi_v3_results.json
 python pipeline/analysis_v3.py results/ioi_v3_results_per_prompt.json results/analysis_v3.json
+python pipeline/attention_patterns.py data/ioi_lists.json results
 ```
 
-GPT-2 small downloads from Hugging Face the first time. The pipeline takes about 4.5 minutes on a MacBook CPU (about 19 on a 2 core cloud machine) because patching every head one at a time is slow. The analysis takes a few seconds. v3's averages match v2 exactly, so the proposal numbers still hold.
+GPT-2 small downloads from Hugging Face the first time. The pipeline takes about 4.5 minutes on a MacBook CPU (about 19 on a 2 core cloud machine) because patching every head one at a time is slow. The analysis takes a few seconds. `attention_patterns.py` only runs forward passes (under a minute) and saves each head's attention patterns for the D3 tool, plus attention at a sixth position (the token after S1 looking back at S1, where previous-token heads act) and a value-weighted version of attention. v3's averages match v2 exactly, so the proposal numbers still hold.
 
 ## First results (one run, so preliminary)
 
