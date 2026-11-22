@@ -1,0 +1,947 @@
+{
+ "ioi": {
+  "n_prompts": 120,
+  "top_heads": [
+   "0.10",
+   "3.0",
+   "4.3",
+   "4.11",
+   "5.5",
+   "5.8",
+   "5.9",
+   "6.0",
+   "6.9",
+   "7.1",
+   "7.3",
+   "7.9",
+   "8.6",
+   "8.10",
+   "9.3",
+   "9.6",
+   "9.7",
+   "9.9",
+   "10.0",
+   "10.1",
+   "10.6",
+   "10.7",
+   "11.2",
+   "11.10"
+  ],
+  "matching": {
+   "position": {
+    "attn_end": 0.429,
+    "dla": 0.385,
+    "attr": 0.196,
+    "denoise": 0.386
+   },
+   "direct": {
+    "attn_end": 0.482,
+    "dla": 0.512,
+    "attr": 0.033,
+    "denoise": 0.516
+   },
+   "linearity": {
+    "attn_end": 0.399,
+    "dla": 0.519,
+    "attr": 0.546,
+    "denoise": 0.577
+   },
+   "redundancy": {
+    "attn_end": 0.148,
+    "dla": 0.47,
+    "attr": 0.491,
+    "denoise": 0.56
+   }
+  },
+  "matching_ci95": {
+   "position": {
+    "attn_end": [
+     0.281,
+     0.492
+    ],
+    "dla": [
+     0.231,
+     0.543
+    ],
+    "attr": [
+     0.102,
+     0.436
+    ],
+    "denoise": [
+     0.295,
+     0.566
+    ]
+   },
+   "direct": {
+    "attn_end": [
+     0.409,
+     0.616
+    ],
+    "dla": [
+     0.381,
+     0.605
+    ],
+    "attr": [
+     0.012,
+     0.326
+    ],
+    "denoise": [
+     0.432,
+     0.651
+    ]
+   },
+   "linearity": {
+    "attn_end": [
+     0.313,
+     0.509
+    ],
+    "dla": [
+     0.387,
+     0.642
+    ],
+    "attr": [
+     0.426,
+     0.691
+    ],
+    "denoise": [
+     0.419,
+     0.665
+    ]
+   },
+   "redundancy": {
+    "attn_end": [
+     -0.011,
+     0.237
+    ],
+    "dla": [
+     0.345,
+     0.635
+    ],
+    "attr": [
+     0.345,
+     0.649
+    ],
+    "denoise": [
+     0.389,
+     0.688
+    ]
+   }
+  },
+  "top10_disagreements": {
+   "attn_end": {
+    "assumption": "position",
+    "n_with_violation_over_0.5": 4,
+    "n_checked": 10,
+    "heads": [
+     {
+      "head": "5.5",
+      "rank_method": 73,
+      "rank_patching": 3,
+      "violation": 1.0
+     },
+     {
+      "head": "8.6",
+      "rank_method": 42,
+      "rank_patching": 2,
+      "violation": 0.012
+     },
+     {
+      "head": "3.0",
+      "rank_method": 125,
+      "rank_patching": 8,
+      "violation": 1.0
+     },
+     {
+      "head": "6.9",
+      "rank_method": 89,
+      "rank_patching": 7,
+      "violation": 1.0
+     },
+     {
+      "head": "4.11",
+      "rank_method": 144,
+      "rank_patching": 12,
+      "violation": 0.985
+     },
+     {
+      "head": "10.3",
+      "rank_method": 12,
+      "rank_patching": 124,
+      "violation": 0.183
+     },
+     {
+      "head": "7.9",
+      "rank_method": 57,
+      "rank_patching": 6,
+      "violation": 0.02
+     },
+     {
+      "head": "9.0",
+      "rank_method": 9,
+      "rank_patching": 73,
+      "violation": 0.072
+     },
+     {
+      "head": "7.3",
+      "rank_method": 69,
+      "rank_patching": 9,
+      "violation": 0.0
+     },
+     {
+      "head": "9.9",
+      "rank_method": 2,
+      "rank_patching": 14,
+      "violation": 0.017
+     }
+    ]
+   },
+   "dla": {
+    "assumption": "direct",
+    "n_with_violation_over_0.5": 10,
+    "n_checked": 10,
+    "heads": [
+     {
+      "head": "5.5",
+      "rank_method": 113,
+      "rank_patching": 3,
+      "violation": 1.0
+     },
+     {
+      "head": "6.9",
+      "rank_method": 121,
+      "rank_patching": 7,
+      "violation": 1.0
+     },
+     {
+      "head": "9.9",
+      "rank_method": 1,
+      "rank_patching": 14,
+      "violation": 0.76
+     },
+     {
+      "head": "8.6",
+      "rank_method": 19,
+      "rank_patching": 2,
+      "violation": 1.0
+     },
+     {
+      "head": "3.0",
+      "rank_method": 58,
+      "rank_patching": 8,
+      "violation": 1.0
+     },
+     {
+      "head": "9.0",
+      "rank_method": 12,
+      "rank_patching": 73,
+      "violation": 1.0
+     },
+     {
+      "head": "6.6",
+      "rank_method": 132,
+      "rank_patching": 25,
+      "violation": 1.0
+     },
+     {
+      "head": "5.8",
+      "rank_method": 104,
+      "rank_patching": 20,
+      "violation": 0.987
+     },
+     {
+      "head": "5.9",
+      "rank_method": 74,
+      "rank_patching": 15,
+      "violation": 0.996
+     },
+     {
+      "head": "7.1",
+      "rank_method": 108,
+      "rank_patching": 22,
+      "violation": 1.0
+     }
+    ]
+   },
+   "attr": {
+    "assumption": "linearity",
+    "n_with_violation_over_0.5": 4,
+    "n_checked": 7,
+    "heads": [
+     {
+      "head": "5.8",
+      "rank_method": 91,
+      "rank_patching": 20,
+      "violation": 0.941
+     },
+     {
+      "head": "5.5",
+      "rank_method": 10,
+      "rank_patching": 3,
+      "violation": 0.743
+     },
+     {
+      "head": "4.11",
+      "rank_method": 33,
+      "rank_patching": 12,
+      "violation": 0.94
+     },
+     {
+      "head": "0.10",
+      "rank_method": 43,
+      "rank_patching": 19,
+      "violation": 0.944
+     },
+     {
+      "head": "9.9",
+      "rank_method": 7,
+      "rank_patching": 14,
+      "violation": 0.227
+     },
+     {
+      "head": "8.6",
+      "rank_method": 1,
+      "rank_patching": 2,
+      "violation": 0.165
+     },
+     {
+      "head": "10.7",
+      "rank_method": 2,
+      "rank_patching": 1,
+      "violation": 0.09
+     }
+    ]
+   },
+   "denoise": {
+    "assumption": "redundancy",
+    "n_with_violation_over_0.5": 8,
+    "n_checked": 8,
+    "heads": [
+     {
+      "head": "5.5",
+      "rank_method": 121,
+      "rank_patching": 3,
+      "violation": 0.795
+     },
+     {
+      "head": "8.6",
+      "rank_method": 50,
+      "rank_patching": 2,
+      "violation": 0.779
+     },
+     {
+      "head": "9.9",
+      "rank_method": 1,
+      "rank_patching": 14,
+      "violation": 0.894
+     },
+     {
+      "head": "5.9",
+      "rank_method": 135,
+      "rank_patching": 15,
+      "violation": 0.861
+     },
+     {
+      "head": "4.11",
+      "rank_method": 85,
+      "rank_patching": 12,
+      "violation": 0.809
+     },
+     {
+      "head": "6.9",
+      "rank_method": 47,
+      "rank_patching": 7,
+      "violation": 0.796
+     },
+     {
+      "head": "5.8",
+      "rank_method": 130,
+      "rank_patching": 20,
+      "violation": 0.866
+     },
+     {
+      "head": "0.3",
+      "rank_method": 17,
+      "rank_patching": 103,
+      "violation": null
+     },
+     {
+      "head": "3.0",
+      "rank_method": 43,
+      "rank_patching": 8,
+      "violation": 0.759
+     },
+     {
+      "head": "10.10",
+      "rank_method": 6,
+      "rank_patching": 27,
+      "violation": null
+     }
+    ]
+   }
+  },
+  "contrast": {
+   "attn_end": {
+    "assumption": "position",
+    "broken_where_disagree": 15,
+    "n_disagree": 40,
+    "broken_where_agree": 0,
+    "n_agree": 7,
+    "fisher_p_one_sided": 0.0535
+   },
+   "dla": {
+    "assumption": "direct",
+    "broken_where_disagree": 19,
+    "n_disagree": 30,
+    "broken_where_agree": 8,
+    "n_agree": 13,
+    "fisher_p_one_sided": 0.5867
+   },
+   "attr": {
+    "assumption": "linearity",
+    "broken_where_disagree": 4,
+    "n_disagree": 7,
+    "broken_where_agree": 3,
+    "n_agree": 27,
+    "fisher_p_one_sided": 0.0204
+   },
+   "denoise": {
+    "assumption": "redundancy",
+    "broken_where_disagree": 17,
+    "n_disagree": 17,
+    "broken_where_agree": 7,
+    "n_agree": 7,
+    "fisher_p_one_sided": 1.0
+   }
+  },
+  "layer_control": {
+   "noising": {
+    "attn_end": {
+     "spearman": 0.171,
+     "partial_layer_held_out": 0.076,
+     "within_layer_mean": 0.252,
+     "partial_ci95": [
+      0.034,
+      0.158
+     ]
+    },
+    "attn_best": {
+     "spearman": 0.54,
+     "partial_layer_held_out": 0.557,
+     "within_layer_mean": 0.568,
+     "partial_ci95": [
+      0.486,
+      0.595
+     ]
+    },
+    "vw_best": {
+     "spearman": 0.547,
+     "partial_layer_held_out": 0.524,
+     "within_layer_mean": 0.552,
+     "partial_ci95": [
+      0.445,
+      0.565
+     ]
+    },
+    "dla": {
+     "spearman": 0.357,
+     "partial_layer_held_out": 0.295,
+     "within_layer_mean": 0.316,
+     "partial_ci95": [
+      0.194,
+      0.403
+     ]
+    },
+    "attr": {
+     "spearman": 0.883,
+     "partial_layer_held_out": 0.877,
+     "within_layer_mean": 0.854,
+     "partial_ci95": [
+      0.855,
+      0.937
+     ]
+    },
+    "layer_baseline": 0.222
+   },
+   "denoising": {
+    "attn_end": {
+     "spearman": 0.495,
+     "partial_layer_held_out": 0.384,
+     "within_layer_mean": 0.248
+    },
+    "attn_best": {
+     "spearman": 0.388,
+     "partial_layer_held_out": 0.426,
+     "within_layer_mean": 0.459
+    },
+    "vw_best": {
+     "spearman": 0.426,
+     "partial_layer_held_out": 0.38,
+     "within_layer_mean": 0.455
+    },
+    "dla": {
+     "spearman": 0.598,
+     "partial_layer_held_out": 0.515,
+     "within_layer_mean": 0.417
+    },
+    "attr": {
+     "spearman": 0.507,
+     "partial_layer_held_out": 0.469,
+     "within_layer_mean": 0.523
+    },
+    "layer_baseline": 0.383
+   }
+  },
+  "slope0_vs_attr_spearman": 0.996
+ },
+ "gt": {
+  "n_prompts": 194,
+  "top_heads": [
+   "0.1",
+   "0.3",
+   "0.5",
+   "0.7",
+   "2.4",
+   "3.4",
+   "4.5",
+   "4.8",
+   "5.1",
+   "5.5",
+   "5.9",
+   "6.4",
+   "6.6",
+   "6.9",
+   "7.6",
+   "7.7",
+   "7.10",
+   "8.8",
+   "8.10",
+   "8.11",
+   "9.1",
+   "9.6",
+   "10.4",
+   "10.7"
+  ],
+  "matching": {
+   "position": {
+    "attn_end": 0.354,
+    "dla": 0.323,
+    "attr": -0.023,
+    "denoise": 0.143
+   },
+   "direct": {
+    "attn_end": -0.009,
+    "dla": 0.096,
+    "attr": -0.425,
+    "denoise": -0.284
+   },
+   "linearity": {
+    "attn_end": 0.285,
+    "dla": 0.313,
+    "attr": 0.163,
+    "denoise": -0.25
+   },
+   "redundancy": {
+    "attn_end": 0.006,
+    "dla": 0.401,
+    "attr": -0.062,
+    "denoise": -0.422
+   }
+  },
+  "matching_ci95": {
+   "position": {
+    "attn_end": [
+     0.234,
+     0.41
+    ],
+    "dla": [
+     0.156,
+     0.382
+    ],
+    "attr": [
+     -0.16,
+     0.27
+    ],
+    "denoise": [
+     0.06,
+     0.263
+    ]
+   },
+   "direct": {
+    "attn_end": [
+     -0.096,
+     0.127
+    ],
+    "dla": [
+     -0.042,
+     0.192
+    ],
+    "attr": [
+     -0.525,
+     -0.111
+    ],
+    "denoise": [
+     -0.335,
+     -0.148
+    ]
+   },
+   "linearity": {
+    "attn_end": [
+     0.194,
+     0.355
+    ],
+    "dla": [
+     0.174,
+     0.379
+    ],
+    "attr": [
+     -0.12,
+     0.331
+    ],
+    "denoise": [
+     -0.364,
+     -0.148
+    ]
+   },
+   "redundancy": {
+    "attn_end": [
+     -0.178,
+     0.089
+    ],
+    "dla": [
+     0.216,
+     0.413
+    ],
+    "attr": [
+     -0.217,
+     0.261
+    ],
+    "denoise": [
+     -0.429,
+     -0.16
+    ]
+   }
+  },
+  "top10_disagreements": {
+   "attn_end": {
+    "assumption": "position",
+    "n_with_violation_over_0.5": 7,
+    "n_checked": 10,
+    "heads": [
+     {
+      "head": "0.1",
+      "rank_method": 138,
+      "rank_patching": 7,
+      "violation": 1.0
+     },
+     {
+      "head": "0.5",
+      "rank_method": 142,
+      "rank_patching": 11,
+      "violation": 1.0
+     },
+     {
+      "head": "5.0",
+      "rank_method": 6,
+      "rank_patching": 63,
+      "violation": 0.019
+     },
+     {
+      "head": "0.3",
+      "rank_method": 136,
+      "rank_patching": 13,
+      "violation": 0.998
+     },
+     {
+      "head": "2.4",
+      "rank_method": 129,
+      "rank_patching": 15,
+      "violation": 0.998
+     },
+     {
+      "head": "4.5",
+      "rank_method": 130,
+      "rank_patching": 16,
+      "violation": 0.965
+     },
+     {
+      "head": "7.11",
+      "rank_method": 14,
+      "rank_patching": 106,
+      "violation": 1.0
+     },
+     {
+      "head": "0.6",
+      "rank_method": 21,
+      "rank_patching": 129,
+      "violation": 1.0
+     },
+     {
+      "head": "8.6",
+      "rank_method": 8,
+      "rank_patching": 49,
+      "violation": 0.065
+     },
+     {
+      "head": "5.5",
+      "rank_method": 1,
+      "rank_patching": 6,
+      "violation": 0.005
+     }
+    ]
+   },
+   "dla": {
+    "assumption": "direct",
+    "n_with_violation_over_0.5": 10,
+    "n_checked": 10,
+    "heads": [
+     {
+      "head": "5.5",
+      "rank_method": 99,
+      "rank_patching": 6,
+      "violation": 0.794
+     },
+     {
+      "head": "0.1",
+      "rank_method": 74,
+      "rank_patching": 7,
+      "violation": 1.0
+     },
+     {
+      "head": "6.5",
+      "rank_method": 12,
+      "rank_patching": 117,
+      "violation": 1.0
+     },
+     {
+      "head": "5.1",
+      "rank_method": 85,
+      "rank_patching": 9,
+      "violation": 1.0
+     },
+     {
+      "head": "0.5",
+      "rank_method": 100,
+      "rank_patching": 11,
+      "violation": 1.0
+     },
+     {
+      "head": "0.9",
+      "rank_method": 9,
+      "rank_patching": 73,
+      "violation": 1.0
+     },
+     {
+      "head": "4.5",
+      "rank_method": 128,
+      "rank_patching": 16,
+      "violation": 0.967
+     },
+     {
+      "head": "10.3",
+      "rank_method": 17,
+      "rank_patching": 130,
+      "violation": 1.0
+     },
+     {
+      "head": "8.7",
+      "rank_method": 10,
+      "rank_patching": 74,
+      "violation": 1.0
+     },
+     {
+      "head": "5.8",
+      "rank_method": 8,
+      "rank_patching": 56,
+      "violation": 1.0
+     }
+    ]
+   },
+   "attr": {
+    "assumption": "linearity",
+    "n_with_violation_over_0.5": 0,
+    "n_checked": 0,
+    "heads": []
+   },
+   "denoise": {
+    "assumption": "redundancy",
+    "n_with_violation_over_0.5": 5,
+    "n_checked": 5,
+    "heads": [
+     {
+      "head": "9.6",
+      "rank_method": 124,
+      "rank_patching": 12,
+      "violation": 0.675
+     },
+     {
+      "head": "3.9",
+      "rank_method": 21,
+      "rank_patching": 144,
+      "violation": null
+     },
+     {
+      "head": "4.5",
+      "rank_method": 98,
+      "rank_patching": 16,
+      "violation": 0.736
+     },
+     {
+      "head": "3.4",
+      "rank_method": 135,
+      "rank_patching": 23,
+      "violation": 0.779
+     },
+     {
+      "head": "9.5",
+      "rank_method": 18,
+      "rank_patching": 90,
+      "violation": null
+     },
+     {
+      "head": "2.5",
+      "rank_method": 134,
+      "rank_patching": 27,
+      "violation": null
+     },
+     {
+      "head": "7.11",
+      "rank_method": 22,
+      "rank_patching": 106,
+      "violation": null
+     },
+     {
+      "head": "3.0",
+      "rank_method": 119,
+      "rank_patching": 30,
+      "violation": null
+     },
+     {
+      "head": "5.9",
+      "rank_method": 69,
+      "rank_patching": 18,
+      "violation": 0.722
+     },
+     {
+      "head": "8.10",
+      "rank_method": 65,
+      "rank_patching": 17,
+      "violation": 0.849
+     }
+    ]
+   }
+  },
+  "contrast": {
+   "attn_end": {
+    "assumption": "position",
+    "broken_where_disagree": 13,
+    "n_disagree": 28,
+    "broken_where_agree": 5,
+    "n_agree": 16,
+    "fisher_p_one_sided": 0.254
+   },
+   "dla": {
+    "assumption": "direct",
+    "broken_where_disagree": 36,
+    "n_disagree": 40,
+    "broken_where_agree": 6,
+    "n_agree": 8,
+    "fisher_p_one_sided": 0.2582
+   },
+   "attr": {
+    "assumption": "linearity",
+    "broken_where_disagree": 0,
+    "n_disagree": 0,
+    "broken_where_agree": 3,
+    "n_agree": 33,
+    "fisher_p_one_sided": null
+   },
+   "denoise": {
+    "assumption": "redundancy",
+    "broken_where_disagree": 7,
+    "n_disagree": 7,
+    "broken_where_agree": 17,
+    "n_agree": 17,
+    "fisher_p_one_sided": 1.0
+   }
+  },
+  "layer_control": {
+   "noising": {
+    "attn_end": {
+     "spearman": 0.375,
+     "partial_layer_held_out": 0.368,
+     "within_layer_mean": 0.302,
+     "partial_ci95": [
+      0.331,
+      0.392
+     ]
+    },
+    "attn_best": {
+     "spearman": 0.446,
+     "partial_layer_held_out": 0.411,
+     "within_layer_mean": 0.326,
+     "partial_ci95": [
+      0.373,
+      0.445
+     ]
+    },
+    "vw_best": {
+     "spearman": 0.413,
+     "partial_layer_held_out": 0.421,
+     "within_layer_mean": 0.382,
+     "partial_ci95": [
+      0.385,
+      0.456
+     ]
+    },
+    "dla": {
+     "spearman": 0.314,
+     "partial_layer_held_out": 0.323,
+     "within_layer_mean": 0.219,
+     "partial_ci95": [
+      0.274,
+      0.362
+     ]
+    },
+    "attr": {
+     "spearman": 0.956,
+     "partial_layer_held_out": 0.954,
+     "within_layer_mean": 0.927,
+     "partial_ci95": [
+      0.941,
+      0.974
+     ]
+    },
+    "layer_baseline": -0.195
+   },
+   "denoising": {
+    "attn_end": {
+     "spearman": 0.349,
+     "partial_layer_held_out": 0.34,
+     "within_layer_mean": 0.326
+    },
+    "attn_best": {
+     "spearman": 0.432,
+     "partial_layer_held_out": 0.394,
+     "within_layer_mean": 0.391
+    },
+    "vw_best": {
+     "spearman": 0.387,
+     "partial_layer_held_out": 0.395,
+     "within_layer_mean": 0.409
+    },
+    "dla": {
+     "spearman": 0.372,
+     "partial_layer_held_out": 0.383,
+     "within_layer_mean": 0.28
+    },
+    "attr": {
+     "spearman": 0.492,
+     "partial_layer_held_out": 0.47,
+     "within_layer_mean": 0.389
+    },
+    "layer_baseline": -0.202
+   }
+  },
+  "slope0_vs_attr_spearman": 0.999
+ }
+}

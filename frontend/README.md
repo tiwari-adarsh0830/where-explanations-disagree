@@ -23,6 +23,16 @@ What's there so far:
 - **How you patch:** a matrix of how well each method and each patching setting agrees with each patching setting. Click a column, or use the Patching setting menu in the toolbar, to make that setting the reference for every other view.
 - **Group knockouts:** knocking out the name movers, the backups or both at once, next to what adding up single heads would predict, split by name order.
 - **Per template:** clean logit difference, agreement with patching, the name-mover knockout and the selected head's effect for each of the 15 templates, BABA next to ABBA.
-- **Selected head panel and table view:** click a head anywhere and it's selected in every view.
+- **Selected head panel and table view:** click a head anywhere and it's selected in every view. You can also type a head (for example 9.9) in the Head box, or focus a grid and move with the arrow keys.
+- **Why the methods disagree about this head:** for the selected head, the assumption behind each method, the intervention that tests it, and whether it holds. Reads `../results/diagnostics_summary.json` (or `../results/gt/diagnostics_summary.json`) from `pipeline/analysis_diagnostics.py`. A "Copy this report" button puts the panel's text on the clipboard.
+- **Where each assumption breaks:** one grid per assumption, a scatter of violation against rank gap, the 4 x 4 matching table, and a table of how often each assumption breaks for heads a method misranks against heads it gets right.
+- **Which heads change each other's effect:** the pairwise interaction matrix for the 24 heads with the largest patching effects.
+- **Does it hold prompt by prompt:** agreement with patching on each prompt, and the selected head's score against its patching effect on each prompt, with the prompts where it matters most and least.
+- **Rank intervals:** a checkbox in the scatter draws each head's 95% bootstrap interval on both ranks.
+- **Notes on every view:** each card has a "What this view shows and leaves out" section (unit, evidence, scope, whether it is causal, what it leaves out, where it can mislead).
+- **Start here and the guided tour:** a short intro with the main findings (computed from the data on load) and a step-by-step tour for each task.
+- **Shareable links:** the address bar keeps the selected head, method, patching setting and filters, so a link reopens the same view (for example `?head=5.5&ref=denoise_abc`).
 
-The name order filter (pooled, BABA, ABBA, IOI only) and the patching setting change every view at once.
+The name order filter (pooled, BABA, ABBA, IOI only) and the patching setting change every view at once, except the assumption checks, which always use the main patching setting (noising with the task's main corruption) because that is what `pipeline/diagnostics.py` measured.
+
+`bash tests/run_all.sh` from the repo root runs the headless checks of every view (see the main README).

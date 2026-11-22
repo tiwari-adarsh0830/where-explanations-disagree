@@ -7,7 +7,7 @@
 <style>
 :root {
   color-scheme: light;
-  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #6e6c68; --link: #2167c0;
   --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10); --other: #c3c2b7;
   --early: #2a78d6; --middle: #eb6834; --late: #1baf7a;
   --div-neg: #e34948; --div-mid: #f0efec; --div-pos: #2a78d6;
@@ -17,7 +17,7 @@
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme="light"])) {
     color-scheme: dark;
-    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781; --link: #6da7ec;
     --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10); --other: #52514e;
     --early: #3987e5; --middle: #d95926; --late: #199e70;
     --div-neg: #e66767; --div-mid: #383835; --div-pos: #3987e5;
@@ -27,7 +27,7 @@
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781; --link: #6da7ec;
   --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10); --other: #52514e;
   --early: #3987e5; --middle: #d95926; --late: #199e70;
   --div-neg: #e66767; --div-mid: #383835; --div-pos: #3987e5;
@@ -49,6 +49,53 @@ h2 { font-size: 15px; margin: 0 0 2px; font-weight: 600; }
 .ctl { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-2); }
 .ctl[hidden] { display: none; }
 .t6controls { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 10px; }
+.why { width: 100%; border-collapse: collapse; font-size: 13px; }
+.why th { text-align: left; color: var(--muted); font-weight: 500; font-size: 12px; padding: 4px 8px 6px 0; border-bottom: 1px solid var(--border); }
+.why td { padding: 9px 8px 9px 0; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--ink-2); }
+.why td.m { color: var(--ink); font-weight: 600; white-space: nowrap; }
+.why .badge { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 10px; border: 1px solid var(--border); margin-top: 3px; font-weight: 500; }
+.why .badge.dis { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.why .ranks { font-size: 12px; color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
+.why a { color: var(--link); cursor: pointer; text-decoration: underline; }
+.why .vbar { display: inline-block; width: 70px; height: 8px; border-radius: 2px; background: var(--grid); vertical-align: middle; position: relative; }
+.why .vbar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: var(--ink-2); }
+.btn { font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--ink); cursor: pointer; }
+.checksrow { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }
+.vgrid h3 { font-size: 12.5px; margin: 0 0 2px; color: var(--ink); font-weight: 600; }
+.vgrid p { font-size: 11.5px; color: var(--muted); margin: 0 0 4px; max-width: 290px; }
+table.match { border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+table.match th, table.match td { padding: 3px 8px; text-align: right; border-bottom: 1px solid var(--border); }
+table.match th { color: var(--muted); font-weight: 500; }
+#tour { position: fixed; right: 16px; bottom: 16px; width: min(380px, calc(100vw - 32px)); background: var(--surface); border: 1.5px solid var(--ink); border-radius: 10px; padding: 12px 14px; z-index: 20; box-shadow: 0 6px 24px rgba(0,0,0,0.18); font-size: 13.5px; color: var(--ink-2); }
+#tour h3 { margin: 2px 0 6px; font-size: 14px; color: var(--ink); }
+#tour p { margin: 0 0 10px; }
+#tour .tstep { font-size: 11.5px; color: var(--muted); }
+#tour .tbtns { display: flex; gap: 6px; justify-content: flex-end; }
+details.intro { padding: 12px 16px; }
+details.intro > summary { cursor: pointer; font-size: 14px; }
+details.intro .muted { color: var(--muted); font-weight: 400; margin-left: 6px; font-size: 12.5px; }
+.introgrid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 24px; margin-top: 8px; font-size: 13.5px; color: var(--ink-2); }
+.introgrid h3 { font-size: 13px; color: var(--ink); margin: 10px 0 4px; }
+.introgrid p { margin: 0 0 8px; }
+.introgrid ol { margin: 0; padding-left: 20px; }
+.introgrid li { margin-bottom: 4px; }
+.introgrid a { color: var(--link); }
+a { color: var(--link); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+#headin { font: inherit; font-size: 13px; padding: 3px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--ink); width: 64px; }
+#headin[aria-invalid="true"] { border-color: var(--div-neg); }
+svg[tabindex]:focus-visible, #headin:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.introgrid .ex { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; background: var(--div-mid); padding: 2px 6px; border-radius: 4px; color: var(--ink); }
+dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 3px 10px; margin: 0; font-size: 12.5px; }
+dl.gloss dt { color: var(--ink); font-weight: 600; }
+dl.gloss dd { margin: 0; }
+@media (max-width: 760px) { .introgrid { grid-template-columns: 1fr; } }
+details.about { margin-top: 12px; font-size: 12.5px; color: var(--ink-2); }
+details.about summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+details.about dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0 0; max-width: 980px; }
+details.about dt { color: var(--ink); font-weight: 600; }
+details.about dd { margin: 0; }
+table.match td.diag { font-weight: 700; color: var(--ink); outline: 1.5px solid var(--ink); outline-offset: -2px; }
 .seg { display: inline-flex; border: 1px solid var(--axis); border-radius: 8px; overflow: hidden; }
 .seg button { font: inherit; font-size: 13px; color: var(--ink); background: var(--surface); border: 0; padding: 6px 12px; cursor: pointer; }
 .seg button + button { border-left: 1px solid var(--axis); }
@@ -123,6 +170,42 @@ details summary { cursor: pointer; font-weight: 600; }
   <h1>Where Explanations Disagree</h1>
   <p class="sub"><span id="intro">GPT-2 small on indirect object identification (IOI).</span> Four ways of scoring the 144 attention heads, compared with activation patching: <span id="refdesc">the drop in logit(IO) − logit(S) when a head's output is replaced by its output on a corrupted prompt with three fresh names</span>. <span id="nprompts"></span></p>
   <p id="err"></p>
+  <details class="card intro" id="intro-card" open>
+    <summary><b>Start here</b> <span class="muted">what this page is, the terms, and the three findings</span></summary>
+    <div class="introgrid">
+      <div>
+        <h3>The question</h3>
+        <p id="introex"></p>
+        <p>Four common ways of scoring how much each attention head matters often disagree. <b>Activation patching</b> is the experiment: replace one head's output with its output on a corrupted prompt and see how much the answer changes. This page checks each score against patching, shows that patching itself can be done several ways, and explains, head by head, why the scores disagree.</p>
+        <p><button class="btn" id="tourbtn">Take the guided tour</button> <span class="muted" style="font-size:12px">a few steps through the main findings; every view stays interactive</span></p>
+        <h3>Findings, live from the data below</h3>
+        <ol id="introfind"></ol>
+      </div>
+      <div>
+        <h3>Terms</h3>
+        <dl class="gloss">
+          <dt>Head</dt><dd>One of the 144 attention heads (layer.head, e.g. 5.5).</dd>
+          <dt>Score / method</dt><dd>A way to rate a head: attention, direct logit attribution (DLA: the head's direct push on the answer), attribution patching (a gradient estimate of patching).</dd>
+          <dt>Noising</dt><dd>Run the clean prompt, swap in one head's corrupted output: is the head <i>necessary</i>?</dd>
+          <dt>Denoising</dt><dd>Run the corrupted prompt, put back one head's clean output: is the head <i>sufficient</i>?</dd>
+          <dt>Corruption</dt><dd>The altered prompt used for patching (new names, a name swap, a changed year…).</dd>
+          <dt>Agreement</dt><dd>Spearman rank correlation of |score| with |patching effect| over the 144 heads (1 = same order).</dd>
+          <dt>Baseline</dt><dd>A score that knows nothing about the task (layer number, head activity): agreement any score gets for free.</dd>
+          <dt>Assumption check</dt><dd>A separate experiment testing what a score must assume to match patching.</dd>
+        </dl>
+        <h3>On this page</h3>
+        <ol class="toc">
+          <li><a href="#gridscard">Where each method points</a></li>
+          <li><a href="#scattercard">Which heads they disagree on</a></li>
+          <li><a href="#why">Why they disagree</a> · <a href="#checks">all heads</a> · <a href="#interact">interactions</a></li>
+          <li><a href="#attention">Where a head looks</a> · <a href="#map">where attention should be read</a></li>
+          <li><a href="#refs">Does the yardstick move?</a></li>
+          <li><a href="#groups">Do groups behave like their parts?</a></li>
+          <li><a href="#templates">Does it hold across prompts?</a></li>
+        </ol>
+      </div>
+    </div>
+  </details>
 
   <div class="controls" role="toolbar" aria-label="Filters">
     <div class="ctl">Task
@@ -146,16 +229,20 @@ details summary { cursor: pointer; font-weight: 600; }
     <div class="ctl"><label for="stage">Circuit heads</label>
       <select id="stage"></select>
     </div>
+    <div class="ctl"><label for="headin">Head</label>
+      <input id="headin" type="text" size="5" placeholder="e.g. 9.9" autocomplete="off" aria-describedby="headhelp">
+      <span id="headhelp" class="sr">Type layer.head and press Enter. In a grid, arrow keys move the selection and Escape clears it.</span>
+    </div>
   </div>
 
-  <section class="card">
+  <section class="card" id="gridscard">
     <h2>Where does each method put importance?</h2>
     <p class="hint" id="t1hint">Layer × head grids. Rank mode colors each head by its rank of |score| within its method, in the five bands shown under each grid, so methods with different units stay comparable. "Best pair" is a head's highest attention across six IOI positions (final token → IO, S1, S2; S2 → S1 and the token after S1; the token after S1 → S1), so it uses knowledge of where the names are. Dots mark heads from the Wang et al. (2023) circuit. Click a cell to select a head everywhere.</p>
     <div class="grids" id="grids"></div>
   </section>
 
   <div class="row">
-    <section class="card">
+    <section class="card" id="scattercard">
       <h2>Which heads disagree with patching?</h2>
       <div class="ctl methodrow">
         <label for="method">Compare</label>
@@ -163,6 +250,7 @@ details summary { cursor: pointer; font-weight: 600; }
         <span>against activation patching</span>
       </div>
       <p class="stat" id="stat"></p>
+      <label class="ctl" style="flex-direction:row;align-items:center;gap:6px;margin:-2px 0 6px"><input type="checkbox" id="showci"> Show rank intervals (95%, resampled prompts; default setting, pooled prompts only)</label>
       <div id="scatter"></div>
       <div class="keys" id="keys"></div>
     </section>
@@ -172,6 +260,37 @@ details summary { cursor: pointer; font-weight: 600; }
       <div id="dbody"></div>
     </section>
   </div>
+
+  <section class="card" id="why" hidden>
+    <h2>Why do the methods disagree about this head?</h2>
+    <p class="hint">Each method measures something narrower than “how important is this head”, and matches patching only if one assumption holds. Each row tests that assumption with a separate intervention, so a disagreement comes with its reason and the experiment behind it. The checks use the default patching setting (<span class="refname"></span>). A violation near 0 means the assumption holds for this head, near 1 means it breaks.</p>
+    <p class="empty" id="whyempty">Click a head in a grid or the scatter.</p>
+    <div id="whybody"></div>
+  </section>
+
+  <section class="card" id="checks" hidden>
+    <h2>Where does each method's assumption break?</h2>
+    <p class="hint">One grid per assumption, laid out like the method grids above: darker means the assumption breaks more for that head. Faded cells are heads whose effect is too small to judge. Right: the test of the whole idea. For the chosen assumption, each dot is a head that ranks in the top 30 under the method or under patching; x is how badly the assumption breaks, y is how far apart the two ranks are. If the checks explain the disagreements, the dots rise to the right. The table below asks a harder question: does each method's disagreement follow its own assumption more than the others (the outlined cells)? Mostly it does not, and the note under the table says why.</p>
+    <div class="checksrow">
+      <div id="vgrids" class="grids"></div>
+      <div>
+        <div class="t6controls"><div class="ctl">Assumption
+          <div class="seg" id="evkey"><button data-v="position" aria-pressed="true">Final token</button><button data-v="direct" aria-pressed="false">Direct</button><button data-v="linearity" aria-pressed="false">Linear</button><button data-v="redundancy" aria-pressed="false">No partners</button></div>
+        </div></div>
+        <p class="stat" id="evstat"></p>
+        <div id="evscatter"></div>
+        <div id="matchwrap"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="interact" hidden>
+    <h2>Which heads change each other's effect?</h2>
+    <p class="hint">Single-head patching assumes a head's effect does not depend on the others. Each cell patches two of the most important heads together and compares that with their two single effects added: interaction = together − (first + second). Blue: together hurts more than the sum, so each covers for the other (backup behavior). Red: together hurts less than the sum, so they sit on the same pathway and removing one already removes most of the other's effect. Click a cell to select its row head.</p>
+    <div class="t5wrap"><div id="intsvg"></div></div>
+    <div class="t5legend" id="intlegend"></div>
+    <p class="t4note" id="intnote"></p>
+  </section>
 
   <section class="card" id="attention">
     <h2>Where does the selected head look?</h2>
@@ -246,6 +365,15 @@ details summary { cursor: pointer; font-weight: 600; }
     </details>
   </section>
 
+  <section class="card" id="prompts">
+    <h2>Does it hold prompt by prompt?</h2>
+    <p class="hint">Every other view averages over prompts. Left: one dot per prompt, showing how well the method picked in the scatter agrees with patching on that prompt alone (Spearman over the 144 heads); click a dot to read the prompt and its top heads. Right: the selected head on each prompt, its score against its patching effect, with the prompts where it matters most and least.</p>
+    <div class="checksrow">
+      <div><p class="stat" id="pstat"></p><div id="pstrip"></div><div id="pdetail" class="hint" style="max-width:460px"></div></div>
+      <div><p class="stat" id="hstat"></p><div id="hscatter"></div><div id="hexamples" class="hint" style="max-width:460px"></div></div>
+    </div>
+  </section>
+
   <section class="card">
     <details>
       <summary>Table view (all 144 heads)</summary>
@@ -254,7 +382,13 @@ details summary { cursor: pointer; font-weight: 600; }
     </details>
   </section>
 </main>
-<div id="tip" role="tooltip"></div>
+<div id="tip" role="tooltip" aria-hidden="true"></div>
+<div id="tour" role="dialog" aria-label="Guided tour" hidden>
+  <div class="tstep" id="tstep"></div>
+  <h3 id="ttitle"></h3>
+  <p id="ttext"></p>
+  <div class="tbtns"><button class="btn" id="tback">Back</button><button class="btn" id="tnext">Next</button><button class="btn" id="tclose">Close</button></div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script>
@@ -275,7 +409,7 @@ const TASKS = {
   ioi: {
     dataUrl: "../results/ioi_v3_results_per_prompt.json", attnUrl: "../results/attn_scores.json",
     varUrl: "../results/patching_variants_per_prompt.json", attnDir: "../results/attn/", listsUrl: "../data/ioi_lists.json",
-    mapUrl: "../results/attn_map.json", mapEnd: "END",
+    mapUrl: "../results/attn_map.json", mapEnd: "END", diagUrl: "../results/diagnostics_summary.json",
     intro: "GPT-2 small on indirect object identification (IOI).",
     metricExpr: "logit(IO) − logit(S)", metricShort: "logit difference", circuit: "the IOI circuit",
     orders: true, defaultRef: "noise_abc", denoise: "denoise_abc",
@@ -307,7 +441,7 @@ const TASKS = {
   gt: {
     dataUrl: "../results/gt/per_prompt.json", attnUrl: "../results/gt/attn_scores.json",
     varUrl: "../results/gt/patching_variants_per_prompt.json", attnDir: "../results/gt/attn/", listsUrl: null,
-    mapUrl: "../results/gt/attn_map.json", mapEnd: "XX end",
+    mapUrl: "../results/gt/attn_map.json", mapEnd: "XX end", diagUrl: "../results/gt/diagnostics_summary.json",
     intro: "GPT-2 small on greater-than (Hanna et al. 2023): after “The war lasted from the year 1732 to the year 17” it should prefer end years after 32.",
     metricExpr: "p(year > YY) − p(year ≤ YY)", metricShort: "probability difference", circuit: "the greater-than circuit",
     orders: false, defaultRef: "noise_01", denoise: "denoise_01",
@@ -360,7 +494,7 @@ const METHODS = [
 const shownMethods = () => METHODS.filter(m => m.key !== "truth" && (!m.cell || state.mapCell) && (!m.baseline || D.map || m.key === "base_layer"));
 const BANDS = [[1, 10, "top 10"], [11, 25, "11–25"], [26, 50, "26–50"], [51, 100, "51–100"], [101, 144, "101–144"]];
 const bandColor = r => css(`--q${5 - BANDS.findIndex(([a, b]) => r >= a && r <= b)}`);
-const seqRamp = () => d3.interpolateRgbBasis([1, 2, 3, 4, 5].map(k => css(`--q${k}`)));
+const seqRamp = () => d3.piecewise(d3.interpolateLab, [1, 2, 3, 4, 5].map(k => css(`--q${k}`)));   // passes exactly through each band color
 const state = { t6metric: "rho", cond: "all", colormode: "rank", stage: "all", method: "attn_end", sel: null, sortKey: "truth_rank", sortAsc: true,
   t3tpl: 0, t3order: "BABA", t3mode: "attn" };
 let D, prompts, role = {}, stats;
@@ -380,6 +514,15 @@ function spearman(a, b) {
   const ra = avgRank(a.map(Math.abs)), rb = avgRank(b.map(Math.abs));
   const ma = d3.mean(ra), mb = d3.mean(rb); let n = 0, da = 0, db = 0;
   for (let i = 0; i < ra.length; i++) { n += (ra[i] - ma) * (rb[i] - mb); da += (ra[i] - ma) ** 2; db += (rb[i] - mb) ** 2; }
+  return n / Math.sqrt(da * db);
+}
+function partialSpearman(a, b, z) {   // rank-based partial correlation of |a| and |b| controlling for z
+  const ra = avgRank(a.map(Math.abs)), rb = avgRank(b.map(Math.abs)), rz = avgRank(z);
+  const resid = y => { const mz = d3.mean(rz), my = d3.mean(y); let sxy = 0, sxx = 0;
+    for (let i = 0; i < y.length; i++) { sxy += (rz[i] - mz) * (y[i] - my); sxx += (rz[i] - mz) ** 2; }
+    const beta = sxy / sxx; return y.map((v, i) => v - my - beta * (rz[i] - mz)); };
+  const ea = resid(ra), eb = resid(rb); let n = 0, da = 0, db = 0;
+  for (let i = 0; i < ea.length; i++) { n += ea[i] * eb[i]; da += ea[i] ** 2; db += eb[i] ** 2; }
   return n / Math.sqrt(da * db);
 }
 const top10 = v => new Set(d3.range(v.length).sort((a, b) => Math.abs(v[b]) - Math.abs(v[a])).slice(0, 10));
@@ -438,8 +581,9 @@ function drawGrids() {
   for (const m of METHODS.filter(m => m.grid !== false)) {
     const box = wrap.append("div").attr("class", "gridbox");
     box.append("h3").text(m.name);
-    const svg = box.append("svg").attr("width", size).attr("height", sizeY).attr("role", "img")
-      .attr("aria-label", `${m.name}, 12 by 12 grid of heads`);
+    const svg = box.append("svg").attr("width", size).attr("height", sizeY).attr("role", "img").attr("tabindex", 0).attr("data-m", m.key)
+      .attr("aria-label", `${m.name}, 12 by 12 grid of heads` + (state.sel != null ? `. Selected head ${lab(state.sel)}: ${fmt(stats[m.key][state.sel])}, rank ${stats.rank[m.key][state.sel]} of 144` : ". Arrow keys select a head."))
+      .on("keydown", ev => gridKey(ev, m.key));
     svg.append("text").attr("x", PADL - 4).attr("y", 11).attr("text-anchor", "end").text("L\\H");
     for (let h = 0; h < H; h += 1) svg.append("text").attr("x", PADL + h * (CELL + GAP) + CELL / 2).attr("y", 12).attr("text-anchor", "middle").text(h);
     for (let l = 0; l < L; l += 1) svg.append("text").attr("x", PADL - 6).attr("y", PADT + l * (CELL + GAP) + CELL / 2 + 4).attr("text-anchor", "end").text(l);
@@ -452,7 +596,7 @@ function drawGrids() {
       color = i => ramp(vals[i]);
     } else {
       const mx = d3.max(vals, Math.abs);
-      const div = d3.scaleDiverging(d3.interpolateRgbBasis([css("--div-neg"), css("--div-mid"), css("--div-pos")])).domain([-mx, 0, mx]);
+      const div = d3.scaleDiverging(d3.piecewise(d3.interpolateLab, [css("--div-neg"), css("--div-mid"), css("--div-pos")])).domain([-mx, 0, mx]);
       color = i => div(vals[i]);
     }
     const g = svg.append("g").attr("transform", `translate(${PADL},${PADT})`);
@@ -516,6 +660,19 @@ function drawScatter() {
     .attr("x", i => x(xr[i]) + (xr[i] < 20 ? -9 : 9)).attr("y", i => y(yr[i]) + 4)
     .attr("text-anchor", i => xr[i] < 20 ? "end" : "start")
     .style("fill", "var(--ink)").style("font-weight", i => i === state.sel ? 600 : 400).text(lab);
+  // rank intervals from resampled prompts (precomputed for the default setting and pooled prompts)
+  const ciKey = { attn_end: "attn_end", attn_best: "attn_best", vw_best: "vw_best", dla: "dla", attr: "attr" }[state.method];
+  const canCI = DG && DG.rank_ci && ciKey && state.ref === TASK.defaultRef && state.cond === "all";
+  if (canCI) {
+    const show = state.showci ? d3.range(NH) : (state.sel != null ? [state.sel] : []);
+    const gci = svg.append("g").attr("pointer-events", "none");
+    for (const i of show) {
+      const [xl, xh] = [DG.rank_ci[ciKey][0][i], DG.rank_ci[ciKey][1][i]], [yl, yh] = [DG.rank_ci.full[0][i], DG.rank_ci.full[1][i]];
+      gci.append("line").attr("x1", x(xl)).attr("x2", x(xh)).attr("y1", y(yr[i])).attr("y2", y(yr[i])).attr("stroke", "var(--ink-2)").attr("stroke-width", i === state.sel ? 1.8 : 0.8).attr("opacity", i === state.sel ? 0.9 : 0.35);
+      gci.append("line").attr("x1", x(xr[i])).attr("x2", x(xr[i])).attr("y1", y(yl)).attr("y2", y(yh)).attr("stroke", "var(--ink-2)").attr("stroke-width", i === state.sel ? 1.8 : 0.8).attr("opacity", i === state.sel ? 0.9 : 0.35);
+    }
+  }
+  d3.select("#showci").property("disabled", !canCI);
   const del = d3.Delaunay.from(d3.range(NH), i => x(xr[i]), i => y(yr[i]));
   svg.append("rect").attr("x", m.l).attr("y", m.t).attr("width", W - m.l - m.r).attr("height", Hh - m.t - m.b)
     .attr("fill", "transparent").style("cursor", "pointer")
@@ -526,7 +683,8 @@ function drawScatter() {
     .on("click", ev => { const [px, py] = d3.pointer(ev); const i = del.find(px, py);
       if (Math.hypot(x(xr[i]) - px, y(yr[i]) - py) <= 24) select(i); });
   d3.select("#stat").html(`Spearman ρ on |score| = <b>${d3.format(".3f")(stats.rho[state.method])}</b> · top-10 overlap <b>${stats.top[state.method]}</b>/10 · ${stats.n} prompts` +
-    `<br><span class="muted">For scale, layer number alone gets ρ = ${d3.format(".2f")(stats.rho.base_layer)}` + (D.map ? ` and head activity ${d3.format(".2f")(stats.rho.base_act)}` : "") + `.</span>`);
+    ` · with layer held out <b>${d3.format(".3f")(partialSpearman(stats[state.method], stats.truth, stats.base_layer))}</b>` +
+    `<br><span class="muted">For scale, layer number alone gets ρ = ${d3.format(".2f")(stats.rho.base_layer)}` + (D.map ? ` and head activity ${d3.format(".2f")(stats.rho.base_act)}` : "") + `. “Layer held out” is the partial rank correlation after removing what layer explains.</span>`);
   d3.select("#keys").html(Object.keys(STAGE_NAME).map(s => `<span><i class="sw" style="background:var(--${s})"></i>${STAGE_NAME[s]}</span>`).join("") +
     `<span><i class="sw" style="background:var(--other)"></i>Other heads</span>`);
 }
@@ -703,6 +861,369 @@ function computeTemplates() {
   }
   return { tpls, cells };
 }
+// ---------- "what this view shows and leaves out" (the course's seven questions for interpretability figures) ----------
+const NOTES = () => {
+  const ioi = TASK_KEY === "ioi", ref = REFS[TASK.defaultRef].short, circ = ioi ? "Wang et al. (2023)" : "Hanna et al. (2023)";
+  const n = prompts.length, scope = ioi ? `${n} prompts from 15 templates in two name orders` : `${n} prompts, two per start year`;
+  return {
+    gridscard: { unit: "One score per attention head (144), averaged over prompts; color is the head's rank within its method, or its signed value.",
+      evidence: `Circuit roles (the dots) come from ${circ}; they are the published reading, not something this tool infers.`,
+      scope, causal: "Only activation patching is an intervention. Attention and DLA describe the clean run; attribution patching estimates patching from a gradient.",
+      leaves: ioi ? "MLPs, the embeddings, and anything below head level (queries, keys, values). Per-prompt variation is averaged away here." : "MLPs (which do much of the comparison in this task), the embeddings, and per-prompt variation.",
+      fails: "Rank colors hide how close two heads are; check the scatter's intervals before reading a one-band difference." },
+    scattercard: { unit: "Each dot is a head: its rank under the chosen method (x) against its rank under patching (y). Agreement is Spearman on |score| over 144 heads.",
+      evidence: "Stage colors follow the published circuit roles.", scope: `${scope}; the name-order filter and the patching setting change both axes.`,
+      causal: "Agreement with patching is a correlation between two scores, not a causal claim about a head.",
+      leaves: "The size of the scores (ranks only); which prompts a head matters on.",
+      fails: "Depth alone agrees with patching (the readout shows layer number for scale); rank differences inside the intervals are noise." },
+    detail: { unit: "One head: its score and rank (out of 144) under each method and the chosen patching setting, then its attention at each query → key pair" + (ioi ? ", then its patching effect by name order." : "."),
+      evidence: "The circuit role, if any, is the published one.", scope: `${scope}; follows the name-order filter.`,
+      causal: "Only the patching rows are interventions.", leaves: "Other patching settings (see the agreement matrix) and how the effect varies by prompt (see the prompt-by-prompt card).",
+      fails: "A rank of 3 versus 6 can be noise; turn on the scatter's intervals to check." },
+    why: { unit: "One head, four assumptions; each violation is a number in [0, 1] from a separate intervention.",
+      evidence: "Each check is computed, not named by hand: final-token share (final-position patching), direct share (direct-path patching), curvature (half-strength patching), interactions (pairwise patching).",
+      scope: `${scope}; all checks use the default setting (${ref}).`, causal: "Every check is an intervention, so each reason is itself an experiment that could have come out the other way.",
+      leaves: "Assumptions we do not test (for example that attention weights reflect what is read, or that the corruption removes only the task information) and heads outside the top 24 for interactions.",
+      fails: "Violation scores are unstable for heads with tiny effects (marked “too small to judge”). The checks overlap: early heads tend to break several at once." },
+    checks: { unit: "Per head, how badly each assumption breaks; right, violation against rank gap for the heads that matter to either score.",
+      evidence: "The matching table is the test of the whole idea: each method's disagreement should follow its own assumption more than the others.",
+      scope: `${scope}; ${ref}.`, causal: "The checks are interventions; the matching table is a correlation across heads.",
+      leaves: "Heads outside the top 30 of both scores (their ranks are mostly noise).",
+      fails: "If the outlined cells are not the largest in their column, the checks do not single out the reason for that method; we report this as it comes out." },
+    interact: { unit: "Pairs among the 24 heads with the largest patching effects: together minus the two single effects added.",
+      evidence: "Interaction terms in activation patching are analysed in Vaidyanathan et al. (2026); here they sit next to the other checks.",
+      scope: `${scope}; ${ref}.`, causal: "Both numbers are interventions; the label (covering for each other vs same pathway) is an interpretation of the sign.",
+      leaves: "Interactions with heads outside the top 24, and among three or more heads.",
+      fails: "Colors saturate at the 95th percentile; read the tooltip for exact values." },
+    attention: { unit: "One head's attention, averaged over a group of prompts that share token positions.",
+      evidence: ioi ? "Names are shown by role (S1, S2, IO) because names differ between prompts." : "The noun, centuries and start year are shown by role because they differ between prompts.",
+      scope: ioi ? "4 prompts per template and name order." : "About 40 prompts per start-year range.", causal: "Attention is where the head looks, not what it does with it (“It does not show what was computed with what it found”).",
+      leaves: "What the head writes (value-weighted is a partial fix), other prompts.", fails: "Averages can hide prompts that look different." },
+    map: { unit: "Each cell: agreement with patching if every head is scored by its attention at that position.",
+      evidence: "The outlined cells are our hand-picked positions; the held-out test (README) checks they are not just selected to fit.",
+      scope: `${scope}; follows the name-order filter and the patching setting.`, causal: "Correlation between an attention score and patching.",
+      leaves: ioi ? "Positions other than the eight role positions." : "Nothing about positions (all pairs are shown); it does leave out combinations of positions.",
+      fails: "Picking the best cell after looking is selection; compare with the held-out numbers before trusting a high cell." },
+    refs: { unit: "Agreement (Spearman on |score| or top-10 overlap) of each row with each patching setting.",
+      evidence: "The settings follow the literature (Zhang & Nanda 2024; Heimersheim & Nanda 2024).", scope,
+      causal: "Every column is an intervention; the cells are correlations between them.",
+      leaves: "Other corruptions and metrics, path patching, edge-level settings.", fails: "Attribution patching estimates the first column, so its advantage there is built in." },
+    groups: { unit: "Groups of heads patched together, against the sum of their single effects and the groups separately.",
+      evidence: `Groups follow ${circ}.`, scope, causal: "Interventions throughout.",
+      leaves: ioi ? "Groups other than the published ones (the interaction matrix covers pairs)." : "MLPs below layer 8; groups other than the published ones.",
+      fails: ioi ? "The BABA/ABBA sign flip appears only with ABC-style corruption; switch the patching setting to see it vanish." : "Probability difference saturates near ±1, so large group effects compress." },
+    prompts: { unit: "Left: one agreement value per prompt (Spearman over 144 heads). Right: one head's score and patching effect on each prompt.",
+      evidence: "The prompt texts are shown so the variation can be read, not just counted.", scope: `${scope}; follows the name-order filter and the patching setting.`,
+      causal: "Patching effects are interventions; the agreement values are correlations.", leaves: "Prompts outside the dataset; positions within a prompt.",
+      fails: "Single-prompt patching is noisy; a low value on one prompt is weak evidence on its own." },
+    templates: { unit: ioi ? "One row per template; filled vs hollow dots are the two name orders." : "One row per start-year range.",
+      evidence: "Robustness to rephrasing: the same question across different sentences.", scope: ioi ? "4 prompts per dot." : "About 40 prompts per row.",
+      causal: "Columns mix interventions (effects) and correlations (agreement).", leaves: "Sentences outside the published templates.",
+      fails: "Small groups are noisy; look for patterns across rows, not single dots." },
+  };
+};
+function drawIntro() {
+  d3.select("#introex").html(TASK_KEY === "ioi"
+    ? `GPT-2 small reads <span class="ex">When Mary and John went to the store, John gave a drink to</span> and should answer <b>Mary</b> (the indirect object, IO), not John (the repeated subject, S).`
+    : `GPT-2 small reads <span class="ex">The war lasted from the year 1732 to the year 17</span> and should put its probability on end years after <b>32</b>.`);
+  const S = byCond.all, f = d3.format(".2f"), items = [];
+  if (S.var) {
+    const V = Object.keys(S.var), meth = shownMethods().filter(m => !m.baseline && !m.cell);
+    const winners = V.map(v => { const b = meth.map(m => [m, spearman(S[m.key], S.var[v])]).filter(([m]) => m.key !== "attr").sort((a, b) => b[1] - a[1])[0]; return `${REFS[v].short}: ${b[0].short} (${f(b[1])})`; });
+    items.push(`<b>The yardstick moves.</b> Leaving out attribution patching (which estimates the default setting), the best-agreeing method per patching setting is ${winners.join("; ")}. <a href="#refs">See the settings</a>.`);
+  }
+  const bl = S.rho.base_layer, ba = S.rho.base_act, pe = partialSpearman(S.attn_end, S.truth, S.base_layer);
+  items.push(`<b>Some agreement is free.</b> ` + (bl > 0.1
+    ? `Layer number alone agrees with patching at ρ = ${f(bl)}` + (D.map ? `, head activity at ${f(ba)}` : "") + `; final-token attention gets ${f(S.rho.attn_end)}, and ${f(pe)} once layer is held out.`
+    : `Here depth does not help (layer number gives ρ = ${f(bl)}), but head activity alone reaches ${f(ba)}, while final-token attention gets ${f(S.rho.attn_end)} (${f(pe)} with layer held out). A method has to beat ${f(Math.max(bl, ba))} before it says anything new.`) +
+    ` <a href="#scattercard">See the scatter</a>.`);
+  if (DG && DG.contrast) {
+    const t = DG.contrast, fr = k => `${t[k].broken_where_disagree} of ${t[k].n_disagree} heads it misranks, against ${t[k].broken_where_agree} of ${t[k].n_agree} it gets right`;
+    const sep = [], all = [];
+    for (const [k, nm, what] of [["attn_end", "final-token attention", "the head acts at the final token"], ["attr", "attribution patching", "the effect is linear"], ["dla", "DLA", "the effect is direct"], ["denoise", "single-head patching", "no other head changes the effect"]]) {
+      const c = t[k]; if (!c || !c.n_agree) continue;
+      if (c.n_disagree && c.fisher_p_one_sided != null && c.fisher_p_one_sided < 0.1) sep.push(`for ${nm}, “${what}” fails for ${fr(k)}`);
+      else if (c.broken_where_agree / c.n_agree >= 0.5) all.push(`${nm}'s (“${what}” fails for ${c.broken_where_agree} of the ${c.n_agree} heads it gets right)`);
+    }
+    items.push(`<b>Some disagreements have a checkable reason, and some agreements prove little.</b> ` +
+      (sep.length ? `Checks that separate right from wrong: ${sep.join("; ")}. ` : "No check clearly separates the heads a method gets right from the ones it misranks here. ") +
+      (all.length ? `Assumptions that break almost everywhere: ${all.join(" and ")}, so matching patching on a head is not evidence the method reads it correctly. ` : "") +
+      `Select a head, for example <a href="#why" data-head="${TASK_KEY === "ioi" ? 65 : 61}">${TASK_KEY === "ioi" ? "5.5" : "5.1"}</a>, to see each check and the experiment behind it. <a href="#checks">See all checks</a>.`);
+  }
+  d3.select("#introfind").html(items.map(t => `<li>${t}</li>`).join(""));
+  d3.selectAll("#introfind a[data-head]").on("click", function () { const i = +this.dataset.head; if (state.sel !== i) select(i); });
+}
+function addNotes() {
+  const N = NOTES(), names = { unit: "Unit", evidence: "Naming and evidence", scope: "Scope", causal: "Causal or not", leaves: "Leaves out", fails: "Where it can mislead" };
+  for (const [id, note] of Object.entries(N)) {
+    const card = d3.select("#" + id); if (card.empty()) continue;
+    card.selectAll("details.about").remove();
+    const d = card.append("details").attr("class", "about"); d.append("summary").text("What this view shows and leaves out");
+    const dl = d.append("dl"); for (const [k, v] of Object.entries(note)) { dl.append("dt").text(names[k]); dl.append("dd").text(v); }
+  }
+}
+
+// ---------- assumption checks (pipeline/diagnostics.py, analysis_diagnostics.py) ----------
+let DG = null;
+const CHECKS = [
+  { v: "position", method: "attn_end", label: () => TASK.attnEnd.name, assume: () => `The head acts at the final token by reading ${TASK.endTarget}.`, link: "attention", linkText: "see where it looks" },
+  { v: "direct", method: "dla", label: () => "Direct logit attribution", assume: () => "Its effect goes straight to the output.", link: "interact", linkText: "see which heads it interacts with" },
+  { v: "linearity", method: "attr", label: () => "Attribution patching", assume: () => "Its effect grows in proportion to the change.", link: null },
+  { v: "redundancy", method: "denoise", label: () => "Single-head patching", assume: () => "No other head changes its effect.", link: "interact", linkText: "see its partners" },
+];
+const CHECK_TITLE = { position: "Acts at the final token?", direct: "Effect is direct?", linearity: "Effect is linear?", redundancy: "Independent of other heads?" };
+const CHECK_SHORT = { position: "final token", direct: "direct", linearity: "linear", redundancy: "no partners" };
+const dgFor = () => (TASK.orders && state.cond !== "all" && DG.by_order) ? { ...DG, ...DG.by_order[state.cond] } : DG;
+const level = v => v == null ? "" : v < 0.3 ? "holds" : v < 0.6 ? "partly breaks" : "breaks";
+const pct = x => `${Math.round(100 * x)}%`;
+function checkText(c, i, G) {
+  const E = G.effects, F = E.full[i], f = d3.format("+.2f"), small = Math.abs(F) < 0.02 * d3.max(E.full, Math.abs);
+  if (small && c.v !== "redundancy") return `Its patching effect (${f(F)}) is too small to judge.`;
+  if (c.v === "position") { const e = E.end[i];
+    return (G.violations.position[i] < 0.3) ? `Most of its effect comes from the final token (${f(e)} of ${f(F)}), so the assumption holds.`
+      : Math.abs(e) < 0.05 * Math.abs(F) ? `Almost none of its ${f(F)} effect comes from the final token (${f(e)}); it acts at earlier tokens, where final-token attention does not look.`
+      : `Only ${f(e)} of its ${f(F)} effect comes from the final token; the rest happens at earlier tokens, where final-token attention does not look.`; }
+  if (c.v === "direct") { const d = E.direct[i];
+    if (G.violations.direct[i] < 0.3) return `The direct path carries most of its effect (${f(d)} of ${f(F)}).`;
+    return Math.abs(d) > Math.abs(F) ? `Its direct push on the output (${f(d)}) is mostly undone further on: the total effect is only ${f(F)}. Other heads compensate.`
+      : Math.abs(d) < 0.05 * Math.abs(F) ? `Its effect (${f(F)}) goes entirely through later components; the direct path carries almost nothing (${f(d)}).`
+      : `Most of its effect (${f(F)}) goes through later components; the direct path carries only ${f(d)}.`; }
+  if (c.v === "linearity") { const a = E.slope0[i], b = E.curv[i];
+    return (G.violations.linearity[i] < 0.3) ? `Nearly linear: the slope at the start (${f(a)}) predicts the full effect (${f(F)}).`
+      : `Attribution patching estimates the slope at the start (${f(a)}; it gives ${f(E.attr[i])}), but the effect bends (curvature ${f(b)}) and the real effect is ${f(F)}.`; }
+  if (c.v === "redundancy") { const k = G.top_heads.indexOf(lab(i));
+    if (k < 0) return `Not among the ${G.top_heads.length} most important heads, so its interactions were not measured.`;
+    const partners = G.top_heads.map((h, j) => [h, G.interaction[k][j]]).filter(([h, v]) => v != null && h !== lab(i)).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 3);
+    return (G.violations.redundancy[i] < 0.3 ? "Its effect barely depends on the other top heads. " : "Its effect depends on other heads. ") +
+      "Largest interactions: " + partners.map(([h, v]) => `${h} (${f(v)}, ${v > 0 ? "cover for each other" : "same pathway"})`).join(", ") + "."; }
+  return "";
+}
+function drawWhy() {
+  const body = d3.select("#whybody"); body.selectAll("*").remove();
+  if (!DG) return;
+  d3.selectAll(".refname").text(REFS[TASK.defaultRef].short);
+  const i = state.sel; d3.select("#whyempty").style("display", i == null ? null : "none");
+  if (i == null) return;
+  const G = dgFor(), rP = absRank(G.effects.full), f = d3.format("+.2f");
+  const rows = CHECKS.map(c => {
+    const rM = c.method === "denoise" ? absRank(G.effects.denoise || DG.effects.denoise)[i] : stats.rank[c.method][i];
+    const dis = Math.abs(Math.log2(rM / rP[i])) >= 1 && Math.abs(rM - rP[i]) >= 5 && (rM <= 30 || rP[i] <= 30);
+    const v = G.violations[c.v][i], br = v != null && v >= 0.6, ok = v != null && v < 0.3;
+    const cs = DG.contrast && DG.contrast[c.method], common = cs && cs.n_agree && cs.broken_where_agree / cs.n_agree >= 0.5;
+    const verdict = v == null || /too small/.test(checkText(c, i, G)) ? "" : dis && br ? (common
+        ? `A likely reason, but not a sufficient one: this assumption also breaks for ${cs.broken_where_agree} of the ${cs.n_agree} important heads where the method agrees with patching.`
+        : "This is a likely reason for the disagreement.")
+      : dis && ok ? "The assumption holds, so this check does not explain the disagreement."
+      : !dis && br ? "The assumption breaks, but the ranks still agree here, so the agreement is not evidence that this method reads the head correctly." : "";
+    return { c, rM, dis, v, text: checkText(c, i, G) + (verdict ? " " + verdict : "") };
+  });
+  body.append("p").attr("class", "hint").html(`<b style="color:var(--ink)">Head ${lab(i)}</b> · ${roleText(i)} · patching rank <b style="color:var(--ink)">${rP[i]}</b>` +
+    (DG.rank_ci && state.cond === "all" ? ` (95% interval ${DG.rank_ci.full[0][i]}–${DG.rank_ci.full[1][i]} over resampled prompts)` : "") + ` · effect ${f(G.effects.full[i])}`);
+  const t = body.append("table").attr("class", "why");
+  t.append("tr").html("<th>Method</th><th>Assumption</th><th>Check</th><th>What the check shows</th>");
+  for (const r of rows) {
+    const tr = t.append("tr");
+    tr.append("td").attr("class", "m").html(`${r.c.label()}<br><span class="ranks">${r.c.method === "denoise" ? "denoising rank" : "rank"} ${r.rM} · patching ${rP[i]}</span><br>` +
+      `<span class="badge ${r.dis ? "dis" : ""}">${r.dis ? "disagrees" : "agrees"}</span>`);
+    tr.append("td").text(r.c.assume());
+    tr.append("td").html(r.v == null ? `<span class="ranks">not measured</span>` : `<span class="vbar"><i style="width:${Math.round(70 * r.v)}px"></i></span> ${r.v.toFixed(2)}<br><span class="ranks">${level(r.v)}</span>`);
+    const td = tr.append("td").text(r.text + " ");
+    if (r.c.link) td.append("a").text(r.c.linkText).on("click", () => document.getElementById(r.c.link).scrollIntoView({ behavior: "smooth" }));
+  }
+  const report = `Head ${lab(i)} (${roleText(i)}), ${TASK_KEY === "gt" ? "greater-than" : "IOI"}, patching rank ${rP[i]}, effect ${f(G.effects.full[i])} (${REFS[TASK.defaultRef].short}).\n` +
+    rows.map(r => `- ${r.c.label()}: rank ${r.rM} (${r.dis ? "disagrees" : "agrees"}). Assumption: ${r.c.assume()} Check: ${r.v == null ? "not measured" : r.v.toFixed(2) + " (" + level(r.v) + ")"}. ${r.text}`).join("\n");
+  body.append("div").style("margin-top", "10px").append("button").attr("class", "btn").attr("id", "copyreport").text("Copy this report")
+    .on("click", function () { try { navigator.clipboard.writeText(report); } catch (e) {} d3.select(this).text("Copied"); setTimeout(() => d3.select(this).text("Copy this report"), 1500); });
+  body.node().dataset.report = report;
+}
+function spearmanRaw(a, b) { const ra = avgRank(a), rb = avgRank(b), ma = d3.mean(ra), mb = d3.mean(rb); let n = 0, da = 0, db = 0;
+  for (let i = 0; i < ra.length; i++) { n += (ra[i] - ma) * (rb[i] - mb); da += (ra[i] - ma) ** 2; db += (rb[i] - mb) ** 2; } return n / Math.sqrt(da * db); }
+function drawChecks() {
+  const wrap = d3.select("#vgrids"); wrap.selectAll("*").remove(); d3.select("#evscatter").selectAll("*").remove(); d3.select("#matchwrap").selectAll("*").remove();
+  if (!DG) return;
+  const G = dgFor(), maxF = d3.max(G.effects.full, Math.abs), ramp = d3.scaleSequential(seqRamp()).domain([0, 1]);
+  const C = 15, G2 = 1, PL = 18, PT = 14;
+  for (const c of CHECKS) {
+    const box = wrap.append("div").attr("class", "vgrid");
+    box.append("h3").text(CHECK_TITLE[c.v]);
+    box.append("p").text(`Assumption of ${c.v === "direct" ? "DLA" : c.v === "position" ? TASK.attnEnd.short : c.label().toLowerCase()}`);
+    const svg = box.append("svg").attr("width", PL + H * (C + G2)).attr("height", PT + L * (C + G2)).attr("role", "img").attr("aria-label", `Violation of: ${c.assume()}`);
+    for (let h = 0; h < H; h += 2) svg.append("text").attr("x", PL + h * (C + G2) + C / 2).attr("y", 10).attr("text-anchor", "middle").style("font-size", "9px").text(h);
+    for (let l = 0; l < L; l += 2) svg.append("text").attr("x", PL - 4).attr("y", PT + l * (C + G2) + C / 2 + 3).attr("text-anchor", "end").style("font-size", "9px").text(l);
+    const g = svg.append("g").attr("transform", `translate(${PL},${PT})`);
+    for (let i = 0; i < NH; i++) {
+      const v = G.violations[c.v][i], small = Math.abs(G.effects.full[i]) < 0.02 * maxF;
+      g.append("rect").attr("class", "vc").attr("x", (i % H) * (C + G2)).attr("y", Math.floor(i / H) * (C + G2)).attr("width", C).attr("height", C).attr("rx", 2)
+        .attr("fill", v == null ? "var(--div-mid)" : ramp(v)).attr("opacity", small && v != null ? 0.22 : 1).style("cursor", "pointer")
+        .on("click", () => select(i))
+        .on("mousemove", ev => showTip(ev, `<b>Head ${lab(i)}</b> <span class="muted">${roleText(i)}</span><br>${c.assume()}<br>violation: <b>${v == null ? "not measured" : v.toFixed(2)}</b>${small ? " <span class=\"muted\">(effect too small to judge)</span>" : ""}`)).on("mouseleave", hideTip);
+      if (i === state.sel) g.append("rect").attr("x", (i % H) * (C + G2) - 1.5).attr("y", Math.floor(i / H) * (C + G2) - 1.5).attr("width", C + 3).attr("height", C + 3).attr("rx", 3).attr("fill", "none").attr("stroke", "var(--ring)").attr("stroke-width", 2).attr("pointer-events", "none");
+    }
+  }
+  wrap.append("div").attr("class", "legend").style("width", "100%").html(`holds 0 <svg width="80" height="8"><defs><linearGradient id="vg"><stop offset="0" stop-color="${css("--q1")}"/><stop offset="1" stop-color="${css("--q5")}"/></linearGradient></defs><rect width="80" height="8" rx="2" fill="url(#vg)"/></svg> 1 breaks · <i style="display:inline-block;width:10px;height:10px;background:var(--div-mid);border-radius:2px"></i> not measured`);
+  // evidence scatter for the chosen assumption
+  const key = state.evkey || "position", c = CHECKS.find(d => d.v === key);
+  const rP = absRank(G.effects.full), rM = c.method === "denoise" ? absRank(G.effects.denoise || DG.effects.denoise) : stats.rank[c.method];
+  const pts = d3.range(NH).filter(i => (rM[i] <= 30 || rP[i] <= 30) && G.violations[key][i] != null)
+    .map(i => ({ i, x: G.violations[key][i], y: Math.abs(Math.log2(rM[i] / rP[i])) }));
+  const r = pts.length > 5 ? spearmanRaw(pts.map(p => p.x), pts.map(p => p.y)) : NaN;
+  d3.select("#evstat").html(`${c.method === "denoise" ? "Denoising" : c.label()} against patching: Spearman between violation and disagreement = <b>${isNaN(r) ? "–" : f2(r)}</b> over ${pts.length} heads`);
+  const W = 330, Hh = 250, m = { l: 44, r: 10, t: 8, b: 36 };
+  const x = d3.scaleLinear().domain([0, 1]).range([m.l, W - m.r]), y = d3.scaleLinear().domain([0, Math.max(1, d3.max(pts, p => p.y) || 1)]).nice().range([Hh - m.b, m.t]);
+  const svg = d3.select("#evscatter").append("svg").attr("width", W).attr("height", Hh).attr("role", "img").attr("aria-label", "Violation against disagreement");
+  svg.append("g").attr("class", "axis").attr("transform", `translate(0,${Hh - m.b})`).call(d3.axisBottom(x).ticks(5).tickSize(3));
+  svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickSize(3));
+  svg.append("text").attr("x", (m.l + W - m.r) / 2).attr("y", Hh - 6).attr("text-anchor", "middle").text("how badly the assumption breaks →");
+  svg.append("text").attr("transform", `translate(11,${(m.t + Hh - m.b) / 2}) rotate(-90)`).attr("text-anchor", "middle").text("rank gap (log₂) →");
+  const col = i => role[i] ? css(`--${STAGE_OF[role[i]]}`) : css("--other");
+  svg.append("g").selectAll("circle").data(pts).join("circle").attr("cx", p => x(p.x)).attr("cy", p => y(p.y)).attr("r", p => p.i === state.sel ? 6.5 : 4.5)
+    .attr("fill", p => col(p.i)).attr("stroke", p => p.i === state.sel ? "var(--ring)" : "var(--surface)").attr("stroke-width", 1.5).style("cursor", "pointer")
+    .on("click", (ev, p) => select(p.i))
+    .on("mousemove", (ev, p) => showTip(ev, `<b>Head ${lab(p.i)}</b> <span class="muted">${roleText(p.i)}</span><br>violation ${p.x.toFixed(2)} · ${c.method === "denoise" ? "denoising" : c.label()} rank ${rM[p.i]} vs patching ${rP[p.i]}`)).on("mouseleave", hideTip);
+  const placed = [], lbl = pts.filter(p => p.i === state.sel || (p.y > 2.5 && p.x > 0.6)).sort((a, b) => (b.i === state.sel) - (a.i === state.sel) || b.y - a.y)
+    .filter(p => { const ok = placed.every(q => Math.abs(y(q.y) - y(p.y)) > 11 || Math.abs(x(q.x) - x(p.x)) > 30); if (ok) placed.push(p); return ok; }).slice(0, 6);
+  svg.append("g").selectAll("text").data(lbl).join("text")
+    .attr("x", p => x(p.x) - 7).attr("y", p => y(p.y) + 4).attr("text-anchor", "end").style("fill", "var(--ink)").style("font-size", "10px").text(p => lab(p.i));
+  // matching table: each method's disagreement against each violation (all prompts)
+  if (DG.matching) {
+    const cols = CHECKS.map(c => c.method), names = { attn_end: "final-token attn", dla: "DLA", attr: "attr. patching", denoise: "denoising" };
+    const tb = d3.select("#matchwrap").append("table").attr("class", "match").attr("id", "matchtbl").style("margin-top", "10px");
+    tb.append("tr").html(`<th style="text-align:left">violation ↓ · disagreement of →</th>${cols.map(c => `<th>${names[c]}</th>`).join("")}`);
+    for (const c of CHECKS) tb.append("tr").html(`<th style="text-align:left">${CHECK_SHORT[c.v]}</th>` +
+      cols.map(m => { const v = DG.matching[c.v][m]; return `<td class="${m === c.method ? "diag" : ""}">${v == null || isNaN(v) ? "–" : f2(v)}</td>`; }).join(""));
+    const own = cols.filter((m, k) => { const d = DG.matching[CHECKS[k].v][m]; return CHECKS.every(c2 => { const o = DG.matching[c2.v][m]; return o == null || isNaN(o) || o <= d + 1e-9; }); }).length;
+    d3.select("#matchwrap").append("p").attr("class", "hint").style("margin-top", "4px").style("max-width", "360px").text(
+      `Spearman over heads in the top 30 for either score, all prompts. Outlined: each method against its own assumption, which is the best predictor in its column for ${own} of 4 methods. ` +
+      (TASK_KEY === "ioi" ? "In IOI the checks move together: the middle of the circuit (S-inhibition and induction heads) acts at earlier tokens, through later heads, and with backups, all at once. So a broken check says this head is unsafe to read with that method; it is not the only reason."
+        : "In greater-than the direct check breaks for almost every important head (they work through MLPs 8 to 11), so it cannot separate the heads DLA gets right from the ones it gets wrong; and noising and denoising rarely disagree, so the redundancy column has little to explain."));
+  }
+  if (DG.contrast) {
+    const names = { attn_end: "Final-token attention", dla: "DLA", attr: "Attribution patching", denoise: "Denoising" };
+    const pf = p => p == null ? "" : p < 0.001 ? "p < 0.001" : `p = ${p.toFixed(p < 0.1 ? 3 : 2)}`;
+    const tb = d3.select("#matchwrap").append("table").attr("class", "match").attr("id", "contrasttbl").style("margin-top", "14px");
+    tb.append("tr").html(`<th style="text-align:left">assumption breaks (violation > 0.5) for…</th><th>heads it misranks</th><th>heads it gets right</th><th>Fisher</th>`);
+    for (const c of CHECKS) { const t = DG.contrast[c.method]; if (!t) continue;
+      const sep = t.fisher_p_one_sided != null && t.fisher_p_one_sided < 0.1;
+      tb.append("tr").html(`<th style="text-align:left">${names[c.method]}</th><td>${t.n_disagree ? `${t.broken_where_disagree} of ${t.n_disagree}` : "none misranked"}</td><td>${t.broken_where_agree} of ${t.n_agree}</td><td class="${sep ? "diag" : ""}">${pf(t.fisher_p_one_sided)}</td>`); }
+    d3.select("#matchwrap").append("p").attr("class", "hint").style("margin-top", "4px").style("max-width", "360px").text(
+      "Heads in the top 30 for either score. Misranked: ranks at least 2× apart; right: within 2×. A check explains disagreements only if it breaks more often for the misranked heads (one-sided Fisher exact test, outlined below 0.1). Where it breaks for nearly every head either way, agreement with patching on a head proves little.");
+  }
+}
+function drawInteract() {
+  const host = d3.select("#intsvg"); host.selectAll("*").remove();
+  if (!DG) return;
+  const G = dgFor(), heads = G.top_heads, M = G.interaction, Kn = heads.length;
+  const vals = M.flat().filter(v => v != null), abs = vals.map(Math.abs).sort(d3.ascending);
+  const mx = d3.quantileSorted(abs, 0.95) || 1, vmax = abs[abs.length - 1];       // saturate at the 95th percentile so one pair does not wash out the rest
+  const color = d3.scaleDiverging(d3.piecewise(d3.interpolateLab, [css("--div-neg"), css("--div-mid"), css("--div-pos")])).domain([-mx, 0, mx]).clamp(true);
+  const avail = host.node().clientWidth || 800, lab0 = 46, C = Math.max(14, Math.min(26, Math.floor((Math.min(avail, 820) - lab0 - 20) / Kn)));
+  const svg = host.append("svg").attr("width", lab0 + Kn * C + 20).attr("height", lab0 + Kn * C + 10).attr("role", "img").attr("aria-label", "Pairwise interaction between the most important heads");
+  const idxOf = h => { const [l, k] = h.split(".").map(Number); return l * H + k; };
+  heads.forEach((h, k) => {
+    const i = idxOf(h), c = role[i] ? `var(--${STAGE_OF[role[i]]})` : "var(--muted)";
+    svg.append("text").attr("x", lab0 - 6).attr("y", lab0 + k * C + C / 2 + 4).attr("text-anchor", "end").style("fill", c).style("font-weight", i === state.sel ? 700 : 400).style("font-size", "10.5px").text(h);
+    svg.append("text").attr("transform", `translate(${lab0 + k * C + C / 2 + 3},${lab0 - 6}) rotate(-60)`).style("fill", c).style("font-weight", i === state.sel ? 700 : 400).style("font-size", "10.5px").text(h);
+  });
+  const g = svg.append("g").attr("transform", `translate(${lab0},${lab0})`);
+  const single = G.effects.full;
+  for (let a = 0; a < Kn; a++) for (let b = 0; b < Kn; b++) {
+    const v = M[a][b]; if (v == null) continue;
+    const ia = idxOf(heads[a]), ib = idxOf(heads[b]);
+    g.append("rect").attr("class", "ic").attr("x", b * C + 0.5).attr("y", a * C + 0.5).attr("width", C - 1).attr("height", C - 1).attr("rx", 2).attr("fill", color(v)).style("cursor", "pointer")
+      .on("click", () => select(ia))
+      .on("mousemove", ev => showTip(ev, `<b>${heads[a]} with ${heads[b]}</b><br>patched together: <b>${fmt(single[ia] + single[ib] + v)}</b><br>separately, added: ${fmt(single[ia] + single[ib])}<br>interaction: <b>${fmt(v)}</b> <span class="muted">(${v > 0 ? "cover for each other" : "same pathway"})</span>`)).on("mouseleave", hideTip);
+  }
+  const ks = heads.indexOf(state.sel != null ? lab(state.sel) : "");
+  if (ks >= 0) g.append("rect").attr("x", -1).attr("y", ks * C - 1).attr("width", Kn * C + 2).attr("height", C + 2).attr("fill", "none").attr("stroke", "var(--ring)").attr("stroke-width", 1.5).attr("pointer-events", "none");
+  d3.select("#intlegend").html(`<span>${fmt(-mx)} same pathway <svg width="90" height="8"><defs><linearGradient id="ig"><stop offset="0" stop-color="${css("--div-neg")}"/><stop offset="0.5" stop-color="${css("--div-mid")}"/><stop offset="1" stop-color="${css("--div-pos")}"/></linearGradient></defs><rect width="90" height="8" rx="2" fill="url(#ig)"/></svg> cover for each other ${fmt(mx)}</span><span class="muted">Colors saturate at ±${fmt2(mx)} (95th percentile of |interaction|); the largest is ±${fmt2(vmax)}.</span>`);
+  let best = null, worst = null;
+  for (let a = 0; a < Kn; a++) for (let b = a + 1; b < Kn; b++) { const v = M[a][b]; if (v == null) continue; if (!best || v > best[2]) best = [heads[a], heads[b], v]; if (!worst || v < worst[2]) worst = [heads[a], heads[b], v]; }
+  if (!best) { d3.select("#intnote").html("Not enough prompts in this filter to measure pairs."); return; }
+  d3.select("#intnote").html(`Strongest backup pair: <b>${best[0]} and ${best[1]}</b> (together ${fmt(best[2])} more than the sum). Strongest same-pathway pair: <b>${worst[0]} and ${worst[1]}</b> (${fmt(worst[2])}). ` +
+    `The ${Kn} heads with the largest patching effects under ${REFS[TASK.defaultRef].short}; ${TASK.orders ? ({ all: "pooled", BABA: "BABA", ABBA: "ABBA" })[state.cond] : "all"} prompts.`);
+}
+
+// ---------- bootstrap intervals for the agreement matrix (computed on hover, cached) ----------
+const ciCache = {};
+function cellCI(rowKey, colKey, metric) {
+  const id = `${rowKey}|${colKey}|${metric}|${state.cond}|${state.mapMode}`; if (id in ciCache) return ciCache[id];
+  const ps = state.cond === "all" ? prompts : prompts.filter(p => p.order === state.cond);
+  const rowArr = p => perPromptScore(p, rowKey) || (p.var && p.var[rowKey]) || null;
+  if (!ps.length || !rowArr(ps[0]) || !ps[0].var) return (ciCache[id] = null);
+  const R = ps.map(rowArr), C = ps.map(p => p.var[colKey]), n = ps.length, rng = mulberry32(5), vals = [];
+  for (let b = 0; b < 200; b++) {
+    const a = new Float64Array(NH), c = new Float64Array(NH);
+    for (let k = 0; k < n; k++) { const j = Math.floor(rng() * n), rr = R[j], cc = C[j]; for (let i = 0; i < NH; i++) { a[i] += rr[i]; c[i] += cc[i]; } }
+    const A = Array.from(a), Cc = Array.from(c);
+    if (metric === "rho") vals.push(spearman(A, Cc)); else { const t = top10(Cc); vals.push([...top10(A)].filter(i => t.has(i)).length); }
+  }
+  vals.sort(d3.ascending);
+  return (ciCache[id] = [d3.quantileSorted(vals, 0.025), d3.quantileSorted(vals, 0.975)]);
+}
+
+const f2 = v => v.toFixed(2).replace("-", "\u2212");   // two decimals with a true minus sign
+
+// ---------- prompt by prompt ----------
+const perPromptScore = (p, key) => {
+  if (key === "attn_end") return p.attn.map(r => r[0]);
+  if (key === "attn_best") return p.attn.map(r => d3.max(r));
+  if (key === "vw_best") return p.vw.map(r => d3.max(r));
+  if (key === "dla" || key === "attr") return p[key];
+  return null;
+};
+function drawPrompts() {
+  const ps = state.cond === "all" ? prompts : prompts.filter(p => p.order === state.cond);
+  const key = perPromptScore(ps[0], state.method) ? state.method : "attn_end", mname = METHODS.find(m => m.key === key).short;
+  const rows = TASK.orders ? (state.cond === "all" ? ["BABA", "ABBA"] : [state.cond]) : D.buckets.map((b, k) => k);
+  const rowOf = p => TASK.orders ? rows.indexOf(p.order) : p.tpl, rowName = r => TASK.orders ? `${r} prompts` : `YY ${D.buckets[r]}`;
+  const pts = ps.map(p => ({ p, rho: spearman(perPromptScore(p, key), p.truth), row: rowOf(p) }));
+  const med = d3.median(pts, d => d.rho), lo = d3.min(pts, d => d.rho), hi = d3.max(pts, d => d.rho);
+  d3.select("#pstat").html(`${mname} vs patching, prompt by prompt: median ρ <b>${f2(med)}</b>, range ${f2(lo)} to ${f2(hi)} over ${pts.length} prompts` +
+    (key !== state.method ? ` <span class="muted">(the scatter's choice has no per-prompt version)</span>` : ""));
+  const host = d3.select("#pstrip"); host.selectAll("*").remove();
+  const W = Math.max(280, Math.min(460, host.node().clientWidth || 460)), rowH = TASK.orders ? 46 : 30, m = { l: 92, r: 12, t: 6, b: 32 }, Hh = m.t + rows.length * rowH + m.b;
+  const x = d3.scaleLinear().domain([Math.min(0, lo), 1]).nice().range([m.l, W - m.r]);
+  const svg = host.append("svg").attr("width", W).attr("height", Hh).attr("role", "img").attr("aria-label", "Agreement with patching on each prompt");
+  svg.append("g").attr("class", "axis").attr("transform", `translate(0,${Hh - m.b})`).call(d3.axisBottom(x).ticks(6).tickSize(3));
+  svg.append("text").attr("x", (m.l + W - m.r) / 2).attr("y", Hh - 4).attr("text-anchor", "middle").text("Spearman ρ on this prompt →");
+  rows.forEach((r, k) => svg.append("text").attr("x", m.l - 8).attr("y", m.t + k * rowH + rowH / 2 + 4).attr("text-anchor", "end").style("fill", "var(--ink-2)").text(rowName(r)));
+  svg.append("line").attr("x1", x(med)).attr("x2", x(med)).attr("y1", m.t).attr("y2", Hh - m.b).attr("stroke", "var(--ink)").attr("opacity", 0.5);
+  const jit = i => ((i * 7919) % 97) / 97 - 0.5;
+  svg.append("g").selectAll("circle").data(pts).join("circle").attr("cx", d => x(d.rho)).attr("cy", (d, i) => m.t + rows.indexOf(TASK.orders ? d.p.order : d.p.tpl) * rowH + rowH / 2 + jit(i) * rowH * 0.6)
+    .attr("r", d => d.p === state.prompt ? 6 : 3.5).attr("fill", d => d.p === state.prompt ? "var(--ink)" : "var(--ink-2)").attr("opacity", d => d.p === state.prompt ? 1 : 0.6)
+    .attr("stroke", "var(--surface)").attr("stroke-width", 1).style("cursor", "pointer")
+    .on("click", (ev, d) => { state.prompt = d.p; drawPrompts(); })
+    .on("mousemove", (ev, d) => showTip(ev, `<b>ρ = ${d.rho.toFixed(3)}</b><br>${d.p.text} …`)).on("mouseleave", hideTip);
+  const pd = d3.select("#pdetail"); pd.selectAll("*").remove();
+  if (state.prompt && ps.includes(state.prompt)) {
+    const p = state.prompt, sc = perPromptScore(p, key), rM = absRank(sc), rP = absRank(p.truth);
+    const topBy = r => d3.range(NH).sort((a, b) => r[a] - r[b]).slice(0, 5).map(lab).join(", ");
+    pd.html(`<p style="margin:8px 0 4px"><b style="color:var(--ink)">“${p.text} …”</b></p>Top 5 by ${mname}: ${topBy(rM)}<br>Top 5 by patching: ${topBy(rP)}<br>Agreement on this prompt: ρ = ${spearman(sc, p.truth).toFixed(3)}`);
+  } else pd.html(`<p style="margin:8px 0 0">Click a dot to read that prompt.</p>`);
+  // the selected head, prompt by prompt
+  const hs = d3.select("#hscatter"); hs.selectAll("*").remove(); const hx = d3.select("#hexamples"); hx.selectAll("*").remove();
+  const i = state.sel;
+  if (i == null) { d3.select("#hstat").html("Select a head to see it prompt by prompt."); return; }
+  const hp = ps.map(p => ({ p, s: perPromptScore(p, key)[i], e: p.truth[i] }));
+  const pos = hp.filter(d => d.e > 0).length;
+  d3.select("#hstat").html(`Head <b>${lab(i)}</b>: patching effect positive on <b>${pos}</b> of ${hp.length} prompts, from ${fmt(d3.min(hp, d => d.e))} to ${fmt(d3.max(hp, d => d.e))}`);
+  const W2 = Math.max(280, Math.min(400, hs.node().clientWidth || 400)), H2 = 240, m2 = { l: 52, r: 10, t: 8, b: 36 };
+  const xs = d3.scaleLinear().domain(d3.extent(hp, d => d.s)).nice().range([m2.l, W2 - m2.r]), ys = d3.scaleLinear().domain(d3.extent(hp.map(d => d.e).concat([0]))).nice().range([H2 - m2.b, m2.t]);
+  const sv = hs.append("svg").attr("width", W2).attr("height", H2).attr("role", "img").attr("aria-label", `Head ${lab(i)} on each prompt`);
+  sv.append("g").attr("class", "axis").attr("transform", `translate(0,${H2 - m2.b})`).call(d3.axisBottom(xs).ticks(5).tickSize(3));
+  sv.append("g").attr("class", "axis").attr("transform", `translate(${m2.l},0)`).call(d3.axisLeft(ys).ticks(5).tickSize(3));
+  sv.append("line").attr("x1", m2.l).attr("x2", W2 - m2.r).attr("y1", ys(0)).attr("y2", ys(0)).attr("stroke", "var(--ink-2)").attr("stroke-width", 1);
+  sv.append("text").attr("x", (m2.l + W2 - m2.r) / 2).attr("y", H2 - 4).attr("text-anchor", "middle").text(`${mname} on this prompt →`);
+  sv.append("text").attr("transform", `translate(12,${(m2.t + H2 - m2.b) / 2}) rotate(-90)`).attr("text-anchor", "middle").text("patching effect →");
+  sv.append("g").selectAll("circle").data(hp).join("circle").attr("cx", d => xs(d.s)).attr("cy", d => ys(d.e)).attr("r", 3.5)
+    .attr("fill", d => TASK.orders && d.p.order === "ABBA" ? "var(--surface)" : "var(--ink-2)").attr("stroke", "var(--ink)").attr("stroke-width", 1).attr("opacity", 0.8)
+    .on("mousemove", (ev, d) => showTip(ev, `${d.p.text} …<br>${mname} ${fmt(d.s)} · patching ${fmt(d.e)}`)).on("mouseleave", hideTip);
+  const sorted = hp.slice().sort((a, b) => b.e - a.e), ex = d => `<li>“${d.p.text.length > 90 ? d.p.text.slice(0, 89) + "…" : d.p.text}” <b>${fmt(d.e)}</b></li>`;
+  hx.html(`<p style="margin:8px 0 2px"><b style="color:var(--ink)">Matters most on</b></p><ol style="margin:0;padding-left:18px">${sorted.slice(0, 3).map(ex).join("")}</ol>` +
+    `<p style="margin:8px 0 2px"><b style="color:var(--ink)">Smallest effect on</b></p><ol style="margin:0;padding-left:18px">${sorted.slice(-3).reverse().map(ex).join("")}</ol>` +
+    (TASK.orders ? `<p style="margin:6px 0 0">Filled dots: BABA prompts; hollow: ABBA.</p>` : ""));
+}
+
 // ---------- position map: agreement at every query > key cell ----------
 function drawMap() {
   const host = d3.select("#mapsvg"); host.selectAll("*").remove();
@@ -712,7 +1233,7 @@ function drawMap() {
   const M = d3.range(Q).map(q => d3.range(Q).map(k => rhoAt(q, k)));
   const hand = new Set(D.map.hand.map(([q, k]) => `${q},${k}`));
   const all = M.flat().filter(v => v != null), mx = Math.max(0.3, d3.max(all, Math.abs));
-  const color = d3.scaleDiverging(d3.interpolateRgbBasis([css("--div-neg"), css("--div-mid"), css("--div-pos")])).domain([-mx, 0, mx]);
+  const color = d3.scaleDiverging(d3.piecewise(d3.interpolateLab, [css("--div-neg"), css("--div-mid"), css("--div-pos")])).domain([-mx, 0, mx]);
   const avail = host.node().clientWidth || 700, rowLab = 86, colLab = 70;
   const C = Math.max(26, Math.min(44, Math.floor((Math.min(avail, 760) - rowLab - 20) / Q)));
   const svg = host.append("svg").attr("width", rowLab + Q * C + 40).attr("height", colLab + Q * C + 26).attr("role", "img")
@@ -804,10 +1325,11 @@ function drawRefs() {
       const fill = css(`--q${band(v) + 1}`), ink = d3.lab(fill).l > 60 ? "#0b0b0b" : "#ffffff";
       g.append("rect").attr("x", x + 1).attr("y", y + 1).attr("width", cw - 2).attr("height", ch - 2).attr("rx", 3).attr("fill", fill);
       g.append("text").attr("x", x + cw / 2).attr("y", y + ch / 2 + 4).attr("text-anchor", "middle")
-        .style("fill", ink).style("font-variant-numeric", "tabular-nums").text(metric === "rho" ? v.toFixed(2) : `${v}/10`);
-      g.on("mousemove", ev => showTip(ev, `<b>${r.label}</b><br><span class="muted">against</span> ${REFS[c].name}<br>` +
-          (metric === "rho" ? `Spearman ρ = <b>${v.toFixed(3)}</b>` : `Top-10 overlap = <b>${v} of 10</b>`) +
-          (c === state.ref ? `<br><span class="muted">This is the current reference</span>` : `<br><span class="muted">Click to make this setting the reference</span>`))).on("mouseleave", hideTip);
+        .style("fill", ink).style("font-variant-numeric", "tabular-nums").text(metric === "rho" ? f2(v) : `${v}/10`);
+      g.on("mousemove", ev => { const iv = cellCI(r.key, c, metric); showTip(ev, `<b>${r.label}</b><br><span class="muted">against</span> ${REFS[c].name}<br>` +
+          (metric === "rho" ? `Spearman ρ = <b>${v.toFixed(3).replace("-", "\u2212")}</b>` : `Top-10 overlap = <b>${v} of 10</b>`) +
+          (iv ? `<br><span class="muted">95% interval ${metric === "rho" ? iv.map(f2).join(" to ") : iv.map(Math.round).join(" to ")} (200 resampled prompt sets)</span>` : "") +
+          (c === state.ref ? `<br><span class="muted">This is the current reference</span>` : `<br><span class="muted">Click to make this setting the reference</span>`)); }).on("mouseleave", hideTip);
     });
   });
   // outline the reference column
@@ -987,10 +1509,91 @@ function setRef(ref) {
   refTexts(ref); recomputeAll(); render();
 }
 function select(i) { state.sel = state.sel === i ? null : i; render(); }
+// keyboard: arrows move the selection inside a grid (left/right = head, up/down = layer), Escape clears it
+function gridKey(ev, mkey) {
+  const mv = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -H, ArrowDown: H }[ev.key];
+  if (mv == null && ev.key !== "Escape") return;
+  ev.preventDefault();
+  if (ev.key === "Escape") state.sel = null;
+  else { const i = state.sel == null ? 0 : state.sel + mv; if (i < 0 || i >= NH) return; state.sel = i; }
+  render(); const el = document.querySelector(`#grids svg[data-m="${mkey}"]`); if (el) el.focus();
+}
+function headFromText(t) { const m = /^\s*(\d{1,2})\s*[.,:\s]\s*(\d{1,2})\s*$/.exec(t || ""); if (!m) return null; const l = +m[1], h = +m[2]; return l < L && h < H ? l * H + h : null; }
+// ---------- shareable state: task, head, setting, order, method, map cell live in the address ----------
+const headIdx = h => { const [l, k] = String(h).split(".").map(Number); return l * H + k; };
+function syncControls() {
+  for (const [id, key] of [["cond", "cond"], ["colormode", "colormode"], ["t6metric", "t6metric"], ["evkey", "evkey"], ["mapmode", "mapMode"]])
+    d3.selectAll(`#${id} button`).attr("aria-pressed", function () { return this.dataset.v === (state[key] || d3.select(`#${id} button`).attr("data-v")); });
+  if (state.ref) d3.select("#ref").property("value", state.ref);
+  refreshMethodSelect(); d3.select("#stage").property("value", state.stage);
+}
+d3.select("#headin").on("keydown", function (ev) {
+  if (ev.key !== "Enter") return;
+  const i = headFromText(this.value); this.setAttribute("aria-invalid", i == null && this.value.trim() ? "true" : "false");
+  if (this.value.trim() === "") { state.sel = null; render(); } else if (i != null) { state.sel = i; render(); }
+});
+function applyState(st) {
+  if (st.ref && REFS[st.ref] && prompts[0].var && st.ref !== state.ref) { state.ref = st.ref; for (const p of prompts) { p.truth = p.var[st.ref]; p.group_drop = p.vgroup[st.ref]; } refTexts(st.ref); }
+  if (st.cond && (TASK.orders || st.cond === "all")) state.cond = st.cond;
+  if (st.mapMode) state.mapMode = st.mapMode;
+  if (st.evkey) state.evkey = st.evkey;
+  if (st.cell && D.map) { state.mapCell = st.cell; const m = METHODS.find(m => m.key === "attn_cell");
+    m.name = `Attention, ${D.map.labels[st.cell[0]]} → ${D.map.labels[st.cell[1]]}${state.mapMode === "vw" ? " (value-weighted)" : ""}`; m.short = `Attn (${D.map.labels[st.cell[0]]}→${D.map.labels[st.cell[1]]})`; }
+  if (st.method && METHODS.some(m => m.key === st.method)) state.method = st.method;
+  if ("sel" in st) state.sel = st.sel;
+  recomputeAll(); syncControls(); render();
+}
+function readURL() {
+  const q = new URLSearchParams(location.search), st = {};
+  if (q.get("head")) st.sel = headIdx(q.get("head"));
+  for (const k of ["ref", "cond", "method", "evkey"]) if (q.get(k)) st[k] = q.get(k);
+  if (q.get("cell")) st.cell = q.get("cell").split(",").map(Number);
+  if (q.get("weight")) st.mapMode = q.get("weight");
+  return st;
+}
+function writeURL() {
+  const q = new URLSearchParams();
+  if (TASK_KEY === "gt") q.set("task", "gt");
+  if (state.sel != null) q.set("head", lab(state.sel));
+  if (state.ref && state.ref !== TASK.defaultRef) q.set("ref", state.ref);
+  if (state.cond !== "all") q.set("cond", state.cond);
+  if (state.method !== "attn_end") q.set("method", state.method);
+  if (state.mapCell) q.set("cell", state.mapCell.join(","));
+  if (state.mapMode === "vw") q.set("weight", "vw");
+  if (state.evkey && state.evkey !== "position") q.set("evkey", state.evkey);
+  const s = q.toString(); history.replaceState(null, "", s ? `?${s}` : location.pathname);
+}
+// ---------- guided tour (doubles as the demo script) ----------
+const TOURS = {
+  ioi: [
+    { t: "Four methods, four answers", x: "Head 5.5 is the 3rd most important head by patching, but final-token attention ranks it 73rd and DLA 113th. Which one is right?", st: { sel: 65, ref: "noise_abc", cond: "all", method: "attn_end" }, go: "gridscard" },
+    { t: "Where they disagree", x: "Heads far from the diagonal are disagreements. Read the line under the agreement number: layer number alone agrees with patching more than final-token attention does.", st: { sel: 65, method: "attn_end" }, go: "scattercard" },
+    { t: "Why: every assumption breaks for 5.5", x: "5.5 acts at the second name, not the final token; its effect goes through later heads, not straight to the output; it bends, so the gradient estimate misses it; and other heads change its effect. Each row is a separate experiment.", st: { sel: 65 }, go: "why" },
+    { t: "It looks somewhere else", x: "From the second name, 5.5 attends to the token after the first name. The plain score only reads the final token, so it never sees this.", st: { sel: 65 }, go: "attention" },
+    { t: "The yardstick moves", x: "Switched to denoising: now the reference asks whether a head is enough on its own. Final-token attention jumps from worst to decent, and DLA's top 10 matches patching's exactly.", st: { ref: "denoise_abc", method: "attn_end" }, go: "refs" },
+    { t: "A finding that depends on the yardstick", x: "With the name-flip corruption, knocking out the name movers hurts in both name orders. The BABA/ABBA sign flip seen with the default setting comes from the corruption, not the model.", st: { ref: "noise_flip" }, go: "groups" },
+    { t: "Who covers for whom", x: "Back to the default setting. S-inhibition head 8.6 and negative name mover 10.7 interact most strongly: patched together they change the answer far more than their two effects added.", st: { ref: "noise_abc", sel: 102 }, go: "interact" },
+  ],
+  gt: [
+    { t: "A different circuit", x: "Greater-than: GPT-2 should prefer end years after the start year. Head 5.1 is in the top 10 by patching, but DLA ranks it 85th.", st: { sel: 61, method: "dla" }, go: "gridscard" },
+    { t: "Why DLA misses 5.1", x: "Most of 5.1's effect goes through later components (Hanna et al. find MLPs 8 to 11 do the comparison), so its direct push on the answer is small.", st: { sel: 61 }, go: "why" },
+    { t: "Here plain attention works", x: "Every circuit head reads the start year from the final token, so final-token attention puts all seven of them in its top 10. The best-position trick that helped in IOI does not help here.", st: { sel: 61, method: "attn_end" }, go: "scattercard" },
+    { t: "Heads are only part of the story", x: "Patching MLPs 8 to 11 as whole layers changes the answer about as much as all seven heads together.", st: {}, go: "groups" },
+  ],
+};
+let tourStep = -1;
+function showTour(k) {
+  const steps = TOURS[TASK_KEY]; tourStep = Math.max(0, Math.min(steps.length - 1, k)); const s = steps[tourStep];
+  d3.select("#tour").attr("hidden", null); d3.select("#tstep").text(`Step ${tourStep + 1} of ${steps.length}`);
+  d3.select("#ttitle").text(s.t); d3.select("#ttext").text(s.x);
+  d3.select("#tback").property("disabled", tourStep === 0); d3.select("#tnext").text(tourStep === steps.length - 1 ? "Finish" : "Next");
+  applyState(s.st); const el = document.getElementById(s.go); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 let lastCond = state.cond;
 function render() {
   if (state.cond !== lastCond) { if (state.cond !== "all") state.t3order = state.cond; lastCond = state.cond; }  // the global filter sets T3's order when it changes
-  stats = byCond[state.cond]; drawGrids(); drawScatter(); drawDetail(); drawAttention(); drawMap(); drawRefs(); drawGroups(); drawTemplates(); drawTable(); }
+  stats = byCond[state.cond]; drawIntro(); drawGrids(); drawScatter(); drawDetail(); drawWhy(); drawChecks(); drawInteract(); drawAttention(); drawMap(); drawRefs(); drawGroups(); drawTemplates(); drawPrompts(); drawTable(); writeURL();
+  const hi = document.getElementById("headin"); if (hi && document.activeElement !== hi) { hi.value = state.sel == null ? "" : lab(state.sel); hi.setAttribute("aria-invalid", "false"); } }
 
 const TEXTS = {
   gt: {
@@ -1024,7 +1627,8 @@ function seg(id, key) {
 
 applyTaskTexts();
 Promise.all([d3.json(TASK.dataUrl), TASK.listsUrl ? d3.json(TASK.listsUrl) : Promise.resolve(null), d3.json(TASK.attnUrl), d3.json(TASK.varUrl).catch(() => null),
-  d3.json(TASK.mapUrl).catch(() => null)]).then(([d, lists, as, pv, map]) => {
+  d3.json(TASK.mapUrl).catch(() => null), d3.json(TASK.diagUrl).catch(() => null)]).then(([d, lists, as, pv, map, dg]) => {
+  DG = dg; if (dg) for (const id of ["why", "checks", "interact"]) d3.select("#" + id).attr("hidden", null);
   D = d; prompts = d.prompts; TEMPLATES = lists ? lists.BABA_TEMPLATES : null;
   D.map = map; if (map) d3.select("#map").attr("hidden", null);
   // attention at six positions (and value-weighted) comes from attention_patterns.py; same prompts, same order
@@ -1045,10 +1649,11 @@ Promise.all([d3.json(TASK.dataUrl), TASK.listsUrl ? d3.json(TASK.listsUrl) : Pro
   recomputeAll();
   d3.select("#nprompts").text(TASK.orders ? `${prompts.length} prompts from ${new Set(prompts.map(p => p.tpl)).size} templates in two name orders.`
     : `${prompts.length} prompts, two for each start year from 02 to 98.`);
-  refreshMethodSelect();
+  refreshMethodSelect(); addNotes();
   d3.select("#method").on("change", function () { state.method = this.value; render(); });
   d3.select("#stage").on("change", function () { state.stage = this.value; render(); });
-  seg("cond", "cond"); seg("colormode", "colormode"); seg("t6metric", "t6metric");
+  seg("cond", "cond"); seg("colormode", "colormode"); seg("t6metric", "t6metric"); seg("evkey", "evkey");
+  d3.select("#showci").on("change", function () { state.showci = this.checked; drawScatter(); });
   d3.selectAll("#mapmode button").on("click", function () { state.mapMode = this.dataset.v;
     d3.selectAll("#mapmode button").attr("aria-pressed", function () { return this.dataset.v === state.mapMode; });
     if (state.mapCell) chooseCell(...state.mapCell); else { recomputeAll(); render(); } });
@@ -1060,8 +1665,13 @@ Promise.all([d3.json(TASK.dataUrl), TASK.listsUrl ? d3.json(TASK.listsUrl) : Pro
   d3.selectAll("#t3order button").on("click", function () { state.t3order = this.dataset.v; drawAttention(); });
   d3.selectAll("#t3mode button").on("click", function () { state.t3mode = this.dataset.v;
     d3.selectAll("#t3mode button").attr("aria-pressed", function () { return this.dataset.v === state.t3mode; }); drawAttention(); });
-  render();
-  addEventListener("resize", () => { drawScatter(); drawAttention(); drawMap(); drawRefs(); drawGroups(); drawTemplates(); });
+  d3.select("#tourbtn").on("click", () => showTour(0));
+  d3.select("#tnext").on("click", () => tourStep >= TOURS[TASK_KEY].length - 1 ? d3.select("#tour").attr("hidden", true) : showTour(tourStep + 1));
+  d3.select("#tback").on("click", () => showTour(tourStep - 1));
+  d3.select("#tclose").on("click", () => d3.select("#tour").attr("hidden", true));
+  const fromURL = readURL();
+  if (Object.keys(fromURL).length) applyState(fromURL); else render();
+  addEventListener("resize", () => { drawScatter(); drawChecks(); drawInteract(); drawAttention(); drawMap(); drawRefs(); drawGroups(); drawTemplates(); });
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
 }).catch(e => d3.select("#err").text(`Could not load ${TASK.dataUrl}. Serve the repo root with "python3 -m http.server" and open /frontend/. (${e})`));
 </script>
