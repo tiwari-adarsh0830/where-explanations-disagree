@@ -21,7 +21,7 @@ We're starting with GPT-2 small on the indirect object identification (IOI) task
 | `frontend/` | The D3 tool (one HTML page, see `frontend/README.md`) |
 | `docs/` | Links to our planning docs |
 
-In `pipeline/`, `ioi_check_v3.py` is the current pipeline. It's the same as v2 (120 prompts from the paper's templates) but it keeps every prompt's scores, labels each prompt with its template and name order, and records attention at five query/key positions instead of one. `analysis_v3.py` reads that output and does the bootstrap intervals, the per-order and per-template breakdowns, and the attribution patching error analysis. `archive/ioi_check_v2.py` produced the numbers in our proposal and `archive/ioi_smoke_test_v1.py` was our first rough try. We kept both for reference.
+In `pipeline/`, `ioi_check_v3.py` is the current pipeline. It's the same as v2 (120 prompts from the paper's templates) but it keeps every prompt's scores, labels each prompt with its template and name order, and records attention at five query/key positions instead of one. `analysis_v4.py` reads that output plus `attn_scores.json` and produces every number the D3 page and the paper use: agreement with patching for each method with bootstrap intervals, attention at six positions (raw and value-weighted), the attribution patching error analysis, the group knockouts, and the per-order and per-template breakdowns. `analysis_v3.py` is the earlier version behind our Nov 3 update (attention at five positions). `archive/ioi_check_v2.py` produced the numbers in our proposal and `archive/ioi_smoke_test_v1.py` was our first rough try. We kept both for reference.
 
 ## Setup
 
@@ -37,8 +37,8 @@ TransformerLens 4.x removed `HookedTransformer`, which the IOI code and most tut
 
 ```
 python pipeline/ioi_check_v3.py data/ioi_lists.json results/ioi_v3_results.json
-python pipeline/analysis_v3.py results/ioi_v3_results_per_prompt.json results/analysis_v3.json
 python pipeline/attention_patterns.py data/ioi_lists.json results
+python pipeline/analysis_v4.py results/ioi_v3_results_per_prompt.json results/attn_scores.json results/analysis_v4.json
 ```
 
 GPT-2 small downloads from Hugging Face the first time. The pipeline takes about 4.5 minutes on a MacBook CPU (about 19 on a 2 core cloud machine) because patching every head one at a time is slow. The analysis takes a few seconds. `attention_patterns.py` only runs forward passes (under a minute) and saves each head's attention patterns for the D3 tool, plus attention at a sixth position (the token after S1 looking back at S1, where previous-token heads act) and a value-weighted version of attention. v3's averages match v2 exactly, so the proposal numbers still hold.
