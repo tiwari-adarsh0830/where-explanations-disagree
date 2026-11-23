@@ -1,4 +1,4 @@
-"""Does it hold on a bigger model? Every score and every assumption check in one script, for any GPT-2 size.
+"""Does it hold on another model? Every score and every assumption check in one script, for any GPT-2 size or Pythia model.
 
 The main results come from five scripts written for GPT-2 small (ioi_check_v3.py, gt_check.py, attention_patterns.py,
 patching_variants.py, diagnostics.py, diagnostics_values.py). This script recomputes, for any HookedTransformer model, the
@@ -18,13 +18,19 @@ quantities the contrast test needs, with the same prompts, corruptions and defin
 
 Prompts: IOI uses the same code and seed as diagnostics.py (120 prompts, 15 templates x BABA/ABBA, ABC corruption);
 greater-than uses the 194 prompts in results/gt/per_prompt.json with the "01" corruption. All GPT-2 sizes share one
-tokenizer, so the prompts are the same tokens for every size. Metrics: IOI logit(IO) - logit(S); greater-than probability
+tokenizer, so the prompts are the same tokens for every size.
+Other tokenizers (Pythia): IOI keeps only names that are one token in this model, as diagnostics.py already does, so the
+same seed draws different names (88 of the 99 names for Pythia); greater-than keeps only prompts whose start year splits
+into the century token and a two-digit token, clean and corrupted (146 of 194 for Pythia: " 1604" becomes " 160" + "4"
+there). A start-of-text token is prepended for every model, as TransformerLens does by default for GPT-2 (it does not for
+Pythia). Metrics: IOI logit(IO) - logit(S); greater-than probability
 on years above YY minus at or below.
 
 Check: with gpt2-small the output matches the committed results (see check_model_check.py).
 
 Writes OUTDIR/ioi.json and OUTDIR/gt.json (per-prompt arrays, index = layer * n_heads + head).
 Run:  python pipeline/model_check.py gpt2-medium results/gpt2-medium [ioi|gt|both] [n_test_batches]
+      python pipeline/model_check.py pythia-410m results/pythia-410m
       Measured on the 2-core cloud machine: one IOI batch (4 prompts) of gpt2-medium takes about 5 minutes, so IOI alone is
       about 2.5 hours there. A MacBook ran the small-model pipeline about 4x faster, so expect very roughly 40 minutes for
       IOI and a bit more for greater-than; the progress lines show the real pace after the first batch.
@@ -43,6 +49,7 @@ t0 = time.time()
 torch.set_grad_enabled(False)
 model = HookedTransformer.from_pretrained(MODEL, device="cpu")
 model.eval()
+model.cfg.default_prepend_bos = True          # GPT-2's default already; Pythia's default is False, so set it for the same setup
 L, H = model.cfg.n_layers, model.cfg.n_heads
 ZK = [f"blocks.{l}.attn.hook_z" for l in range(L)]
 VK = [f"blocks.{l}.attn.hook_v" for l in range(L)]
@@ -215,7 +222,7 @@ if WHICH in ("ioi", "both"):
             return prepare(tc, tx, metric, torch.tensor(tgt)), dirs
         return mk
     meta = [{"text": c, "tpl": g["tpl"], "order": g["order"]} for g in groups for c in g["clean"]]
-    print(f"IOI: {len(meta)} prompts", flush=True)
+    print(f"IOI: {len(meta)} prompts, {len(names)} of {len(lists['NAMES'])} names are one token", flush=True)
     R, heads, pairs = run([ioi_batch(g) for g in groups], "IOI")
     summary_line("IOI", R)
     write(f"{OUT}/ioi{'_test' if TEST else ''}.json", meta, R, heads, pairs,
@@ -225,11 +232,16 @@ if WHICH in ("ioi", "both"):
 if WHICH in ("gt", "both"):
     gt = json.load(open(os.path.join(DATA, "results/gt/per_prompt.json")))["prompts"]
     CH = 24 if H <= 12 else 12
+    YEAR = torch.tensor([model.to_single_token(f"{y:02d}") for y in range(100)])
+    def splits(cen, yy):                       # " CCYY" -> " CC" + "YY" in this model's tokenizer
+        return model.to_tokens(f" {cen}{yy:02d}", prepend_bos=False)[0].tolist() == [model.to_single_token(f" {cen}"), YEAR[yy].item()]
+    n_all = len(gt); gt = [p for p in gt if splits(p["century"], p["yy"]) and splits(p["century"], 1)]
+    dropped_gt = n_all - len(gt)
+    if dropped_gt: print(f"greater-than: {dropped_gt} of {n_all} prompts dropped (start year not split into century + two digits in this tokenizer)", flush=True)
     if TEST: gt = gt[:CH * TEST]
     corr = []
     for p in gt:
         st = f"{p['century']}{p['yy']:02d}"; i = p["text"].index(st); corr.append(p["text"][:i] + f"{p['century']}01" + p["text"][i + 4:])
-    YEAR = torch.tensor([model.to_single_token(f"{y:02d}") for y in range(100)])
     WU = model.W_U[:, YEAR]
     def gt_batch(rows):
         def mk():
@@ -251,5 +263,6 @@ if WHICH in ("gt", "both"):
     R, heads, pairs = run([gt_batch(c) for c in chunks], "greater-than")
     summary_line("greater-than", R)
     write(f"{OUT}/gt{'_test' if TEST else ''}.json", [{"text": p["text"], "tpl": p["tpl"], "yy": p["yy"]} for p in gt], R, heads, pairs,
-          {"task": "gt", "target": "YY", "corruption": "start year changed to XX01", "metric": "P(year > YY) - P(year <= YY)"})
+          {"task": "gt", "target": "YY", "corruption": "start year changed to XX01", "metric": "P(year > YY) - P(year <= YY)",
+           "prompts_dropped": dropped_gt})
 print(f"done in {time.time() - t0:.0f}s", flush=True)

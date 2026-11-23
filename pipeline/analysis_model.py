@@ -10,6 +10,7 @@ part of the checks, so they are left out).
 
 Writes OUTDIR/analysis.json and prints the results next to GPT-2 small's (results/analysis_validity.json).
 Run:  python pipeline/analysis_model.py results/gpt2-medium [_test]
+      python pipeline/analysis_model.py results/pythia-410m          (IOI only; see the Holm note below)
 """
 import json, os, sys
 import numpy as np
@@ -95,10 +96,14 @@ for task in files:
         tests.append({"task": task, "check": vk, "counts": f"{bd}/{nd} vs {ba}/{na}", "mean_violation": [round(float(xd.mean()), 3), round(float(xa.mean()), 3)],
                       "fisher_p": round(pf, 4), "mannwhitney_p": round(pm, 4), "permutation_p": round((cnt + 1) / 20001, 4), "planned": vk != "target"})
 valid = [t for t in tests if "fisher_p" in t]
+# A model run on one task only (Pythia: IOI only) keeps the same bar as the two-task runs: the other task's tests count as
+# p = 1 in the Holm family (4 planned + 1 later test per task), so the correction is as strict as for GPT-2 small and medium.
+pad = {"planned_8": 4, "all_10": 5} if len(files) == 1 else {"planned_8": 0, "all_10": 0}
+out["holm_padding"] = pad
 for fam, sel in (("planned_8", [t for t in valid if t["planned"]]), ("all_10", valid)):
     if not sel: continue
     for key in ("fisher_p", "mannwhitney_p", "permutation_p"):
-        adj = ns["holm"](np.array([t[key] for t in sel]))
+        adj = ns["holm"](np.r_[np.array([t[key] for t in sel]), np.ones(pad[fam])])[:len(sel)]
         for t, a in zip(sel, adj): t.setdefault("holm", {}).setdefault(fam, {})[key] = round(float(a), 4)
 out["multiple_testing"] = tests
 json.dump(out, open(f"{OUTDIR}/analysis{SFX}.json", "w"), indent=1)
