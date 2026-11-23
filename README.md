@@ -68,7 +68,7 @@ GPT-2 small downloads from Hugging Face the first time. The pipeline takes about
 
 To reproduce a figure: open the page (live link above, or `python3 -m http.server` from the repo root and `/frontend/`), set the view (the address bar keeps the head, method, patching setting and filters), and press **Save SVG** on the card. Each file records the link it came from in its `<desc>` element. For a PDF, `pip install cairosvg` and `cairosvg figure.svg -o figure.pdf`.
 
-To check the page itself: `pip install playwright && python -m playwright install chromium`, then `bash tests/run_all.sh` from the repo root. It serves the repo locally, loads every view in a headless browser for both tasks, compares numbers on the page with the result files, and checks for script errors, sideways overflow on a phone-width screen, keyboard selection, shareable links, the guided tour and the SVG export of every card. With `cd tests && npm i axe-core@4` it also runs an automated WCAG AA audit.
+To check the page itself: `pip install playwright && python -m playwright install chromium`, then `bash tests/run_all.sh` from the repo root. It serves the repo locally, loads every view in a headless browser for both tasks, compares numbers on the page with the result files, and checks for script errors, sideways overflow on a phone-width screen, keyboard selection, shareable links, the guided tour, the SVG export of every card, and the GPT-2 small vs medium table (every cell recomputed from the result files). With `cd tests && npm i axe-core@4` it also runs an automated WCAG AA audit.
 
 ## First results (one run, so preliminary)
 
@@ -132,7 +132,7 @@ The result is mixed, and we report it that way:
 - Two assumptions that broke almost everywhere in small separate cleanly in medium IOI. DLA's direct-path assumption breaks for 25 of the 32 heads DLA misranks and for none of the 9 it gets right (corrected p = 0.0007; same direction under all 27 cutoff choices and in all 400 split-half tests); 6 of the 9 are in layers 20 to 23, the others are 12.3, 15.4 and 17.4. "What it reads at IO carries its effect" breaks for 27 of 34 misranked against 1 of 6 right (corrected p = 0.0009 in the family of ten). Both hold without the 2% rule too (29 of 36 against 0 of 9; 37 of 45 against 1 of 6). In greater-than neither separates (DLA 22 of 24 against 7 of 7). We do not know why medium differs from small here; it means "agreement with patching proves little for DLA" is a GPT-2 small IOI result, not a general one.
 - The checks still move together: in medium IOI the direct-path violation follows DLA's rank gap (0.68) exactly as much as denoising's (0.68), and the position violation follows DLA's gap (0.54) more than attention's own (0.45).
 
-So across two model sizes: no-partners breaks everywhere; linearity and "acts at the final token" point the right way in every IOI test but rest on few heads; whether DLA and "reads IO" fail only where those methods disagree depends on the model; nothing separates in greater-than in either model.
+The page shows this comparison as a table under the contrast table on the assumption-check card, with one verdict per check and model under the same rule. So across two model sizes: no-partners breaks everywhere; linearity and "acts at the final token" point the right way in every IOI test but rest on few heads; whether DLA and "reads IO" fail only where those methods disagree depends on the model; nothing separates in greater-than in either model.
 
 ## Main references
 

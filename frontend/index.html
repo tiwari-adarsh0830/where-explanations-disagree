@@ -903,9 +903,9 @@ const NOTES = () => {
       fails: "Violation scores are unstable for heads with tiny effects (marked “too small to judge”). The checks overlap: early heads tend to break several at once." },
     checks: { unit: "Per head, how badly each assumption breaks; right, violation against rank gap for the heads that matter to either score.",
       evidence: "The matching table is the test of the whole idea: each method's disagreement should follow its own assumption more than the others.",
-      scope: `${scope}; ${ref}.`, causal: "The checks are interventions; the matching table is a correlation across heads.",
-      leaves: "Heads outside the top 30 of both scores (their ranks are mostly noise).",
-      fails: "If the outlined cells are not the largest in their column, the checks do not single out the reason for that method; we report this as it comes out." },
+      scope: `${scope}; ${ref}. The last table adds GPT-2 medium (24 layers × 16 heads), same prompts and rules.`, causal: "The checks are interventions; the matching table is a correlation across heads.",
+      leaves: "Heads outside the top 30 of both scores (their ranks are mostly noise). Model sizes other than small and medium.",
+      fails: "If the outlined cells are not the largest in their column, the checks do not single out the reason for that method; we report this as it comes out. Some verdicts differ between small and medium, so a verdict on one model is not a verdict on GPT-2 in general." },
     interact: { unit: "Pairs among the 24 heads with the largest patching effects: together minus the two single effects added.",
       evidence: "Interaction terms in activation patching are analysed in Vaidyanathan et al. (2026); here they sit next to the other checks.",
       scope: `${scope}; ${ref}.`, causal: "Both numbers are interventions; the labels (covering for each other, same pathway) are interpretations that depend on the signs of the two single effects, and pairs where one head helps and the other hurts get no such label.",
@@ -972,6 +972,20 @@ function drawIntro() {
       (all.length ? `Assumptions that break almost everywhere: ${all.join(" and ")}, so matching patching on a head is not evidence the method reads it correctly. ` : "") +
       `Select a head, for example <a href="#why" data-head="${TASK_KEY === "ioi" ? 65 : 61}">${TASK_KEY === "ioi" ? "5.5" : "5.1"}</a>, to see each check and the experiment behind it. <a href="#checks">See all checks</a>.`);
   }
+  if (DG && DG.contrast && MED) {
+    const what = { position: "acts at the final token", target: `reads ${TASK.endTarget}`, direct: "direct effect", linearity: "linear effect", redundancy: "no partners" };
+    const who = { attn_end: "final-token attention", dla: "DLA", attr: "attribution patching", denoise: "single-head patching" };
+    const changed = [], same = [];
+    for (const c of activeChecks()) {
+      const cs = contrastOf(c), cm = medContrast(c.v); if (!cs || !cm) continue;
+      const vs = checkVerdict(cs, cs.validity ? cs.validity.holm_p : null), vm = checkVerdict(cm, medHolm(c.v));
+      if (vs.k === "untestable" && vm.k === "untestable") continue;
+      (vs.k === vm.k ? same : changed).push(vs.k === vm.k ? `${who[c.method]}'s “${what[c.v]}” (${vm.text})` : `${who[c.method]}'s “${what[c.v]}” ${vs.text} in small but ${vm.text} in medium`);
+    }
+    items.push(`<b>${changed.length ? "A second model changes part of this." : "A second model gives the same verdicts."}</b> On GPT-2 medium, run with the same prompts and every rule fixed beforehand, ` +
+      (changed.length ? `${changed.join("; ")}. ` : "no check changes its verdict. ") + (same.length ? `Unchanged: ${same.join("; ")}. ` : "") +
+      `So read every claim above as a claim about GPT-2 small. <a href="#medtitle">See both models side by side</a>.`);
+  }
   d3.select("#introfind").html(items.map(t => `<li>${t}</li>`).join(""));
   d3.selectAll("#introfind a[data-head]").on("click", function () { const i = +this.dataset.head; if (state.sel !== i) select(i); });
 }
@@ -998,6 +1012,22 @@ const CHECK_TITLE = { position: "Acts at the final token?", target: "Reads the t
 const CHECK_SHORT = { position: "final token", target: "reads target", direct: "direct", linearity: "linear", redundancy: "no partners" };
 const activeChecks = () => CHECKS.filter(c => DG && DG.violations && DG.violations[c.v]);   // the target check needs pipeline/diagnostics_values.py
 const contrastOf = c => DG && DG.contrast ? (DG.contrast[c.v] || (c.v === "position" || c.v === "linearity" || c.v === "direct" || c.v === "redundancy" ? DG.contrast[c.method] : null)) : null;
+// GPT-2 medium, from pipeline/model_check.py and pipeline/analysis_model.py (same prompts, corruptions and rules, fixed before that run)
+let MED = null;
+const MED_URL = "../results/gpt2-medium/analysis.json";
+const medContrast = v => MED && MED[TASK_KEY] && MED[TASK_KEY].contrast ? MED[TASK_KEY].contrast[v] || null : null;
+const medHolm = v => { const t = MED && (MED.multiple_testing || []).find(x => x.task === TASK_KEY && x.check === v);
+  return t && t.holm ? t.holm[t.planned ? "planned_8" : "all_10"].mannwhitney_p : null; };
+// One verdict per check and model, the same rule for both: "separates" needs both the count test (Fisher) and the corrected rank test
+// below 0.05; "breaks almost everywhere" when the assumption breaks for at least half the heads the method gets right.
+function checkVerdict(c, holm) {
+  if (!c || !c.n_disagree || !c.n_agree) return { k: "untestable", text: c && !c.n_disagree ? "no head misranked" : "not testable" };
+  const few = Math.min(c.n_disagree, c.n_agree) < 5 ? ` (only ${Math.min(c.n_disagree, c.n_agree)} ${c.n_disagree < c.n_agree ? "misranked" : "right"} heads)` : "";
+  if (c.broken_where_agree / c.n_agree >= 0.5) return { k: "everywhere", text: "breaks almost everywhere" };
+  if (holm != null && holm < 0.05 && c.fisher_p_one_sided != null && c.fisher_p_one_sided < 0.05) return { k: "separates", text: "separates right from wrong" + few };
+  if (c.broken_where_disagree / c.n_disagree > c.broken_where_agree / c.n_agree) return { k: "direction", text: "points the right way, weakly" + few };
+  return { k: "none", text: "does not separate" };
+}
 const dgFor = () => (TASK.orders && state.cond !== "all" && DG.by_order) ? { ...DG, ...DG.by_order[state.cond] } : DG;
 const level = v => v == null ? "" : v < 0.3 ? "holds" : v < 0.6 ? "partly breaks" : "breaks";
 const pct = x => `${Math.round(100 * x)}%`;
@@ -1144,6 +1174,22 @@ function drawChecks() {
       tb.append("tr").html(`<th style="text-align:left">${rowName}</th><td>${t.n_disagree ? `${t.broken_where_disagree} of ${t.n_disagree}` : "none misranked"}</td><td>${t.broken_where_agree} of ${t.n_agree}</td><td>${pf(t.fisher_p_one_sided)}</td><td class="${sep ? "diag" : ""}">${V ? pf(V.holm_p) : "–"}</td><td>${t.robustness ? `same direction ${t.robustness.misranked_break_more}/${t.robustness.settings}, p < 0.1 in ${t.robustness["p_below_0.1"]}` : ""}</td><td>${V && V.split_half ? `same direction ${V.split_half.misranked_break_more}/${V.split_half.tests}, p < 0.1 in ${V.split_half["p_below_0.1"]}` : "–"}</td>`); }
     d3.select("#matchwrap").append("p").attr("class", "hint").style("margin-top", "4px").style("max-width", "360px").text(
       "Heads in the top 30 for either score whose patching effect is at least 2% of the largest (below that the violation is a ratio of two near-zero numbers). Misranked: ranks at least 2× apart; right: within 2×. A check explains disagreements only if it breaks more often for the misranked heads (one-sided Fisher exact test). Corrected p: a one-sided Mann-Whitney test on the violation scores, Holm-adjusted for the number of tests (the eight planned ones; ten for the later “reads the target” check), outlined below 0.05. “Over 27 cutoff choices” repeats the Fisher test with the pool at the top 20, 30 or 40, misranked meaning 1.5×, 2× or 3× apart, and broken meaning a violation above 0.3, 0.5 or 0.7. Split-half decides which heads are misranked on one half of the prompts and measures the violations on the other (200 splits, both ways round), so shared noise cannot create the link. Where an assumption breaks for nearly every head either way, agreement with patching on a head proves little.");
+  }
+  if (DG.contrast && MED) {
+    const M = MED[TASK_KEY], pf = p => p == null ? "–" : p < 0.001 ? "p < 0.001" : `p = ${p.toFixed(p < 0.1 ? 3 : 2)}`;
+    const cnt = c => !c ? "–" : c.n_disagree ? `${c.broken_where_disagree} of ${c.n_disagree} vs ${c.broken_where_agree} of ${c.n_agree}` : `none misranked (${c.broken_where_agree} of ${c.n_agree} right)`;
+    d3.select("#matchwrap").append("p").attr("class", "stat").attr("id", "medtitle").style("margin-top", "16px").text(`Does it hold on a bigger model? GPT-2 small (${L} layers × ${H} heads) against GPT-2 medium (${MED.n_layers} × ${MED.n_heads})`);
+    const tb = d3.select("#matchwrap").append("table").attr("class", "match").attr("id", "medtbl");
+    tb.append("tr").html(`<th style="text-align:left">assumption breaks for… (misranked vs right)</th><th>GPT-2 small</th><th>corrected p</th><th>verdict</th><th>GPT-2 medium</th><th>corrected p</th><th>verdict</th>`);
+    for (const c of activeChecks()) {
+      const cs = contrastOf(c), cm = medContrast(c.v); if (!cs && !cm) continue;
+      const hs = cs && cs.validity ? cs.validity.holm_p : null, hm = medHolm(c.v), vs = checkVerdict(cs, hs), vm = checkVerdict(cm, hm);
+      const nm = { attn_end: "Final-token attention", dla: "DLA", attr: "Attribution patching", denoise: "Single-head patching" }[c.method];
+      tb.append("tr").attr("data-check", c.v).html(`<th style="text-align:left">${nm} <span class="ranks">(${CHECK_SHORT[c.v]})</span></th><td>${cnt(cs)}</td><td class="${hs != null && hs < 0.05 ? "diag" : ""}">${pf(hs)}</td><td>${vs.text}</td><td>${cnt(cm)}</td><td class="${hm != null && hm < 0.05 ? "diag" : ""}">${pf(hm)}</td><td class="${vs.k !== vm.k ? "diag" : ""}">${vm.text}</td>`);
+    }
+    d3.select("#matchwrap").append("p").attr("class", "hint").attr("id", "medhint").style("margin-top", "4px").style("max-width", "360px").text(
+      `GPT-2 medium was run with the same prompts, corruptions and metrics, and with every rule fixed before the run (2% effect rule, top-30 pool, 2× cutoff, violation above 0.5, the same family of planned tests, corrected within each model), so it tests the checks on a model they were not tuned on. ${M.metric_clean_mean != null ? `Medium does the task (${TASK.metricShort} ${M.metric_clean_mean.toFixed(2)} clean, ${M.metric_corrupt_mean.toFixed(2)} corrupted). ` : ""}` +
+      "Verdict, the same rule for both models: separates when both the count test (Fisher) and the corrected test are below 0.05; breaks almost everywhere when the assumption breaks for at least half the heads the method gets right; points the right way when misranked heads break more often but not both tests agree. Outlined verdict: it differs between the models. Medium's numbers: results/gpt2-medium/analysis.json.");
   }
 }
 // What a pair interaction means depends on the signs of the two single effects. Two heads that push the same way: together bigger
@@ -1812,8 +1858,8 @@ function seg(id, key) {
 
 applyTaskTexts();
 Promise.all([d3.json(TASK.dataUrl), TASK.listsUrl ? d3.json(TASK.listsUrl) : Promise.resolve(null), d3.json(TASK.attnUrl), d3.json(TASK.varUrl).catch(() => null),
-  d3.json(TASK.mapUrl).catch(() => null), d3.json(TASK.diagUrl).catch(() => null)]).then(([d, lists, as, pv, map, dg]) => {
-  DG = dg; if (dg) for (const id of ["why", "checks", "interact"]) d3.select("#" + id).attr("hidden", null);
+  d3.json(TASK.mapUrl).catch(() => null), d3.json(TASK.diagUrl).catch(() => null), d3.json(MED_URL).catch(() => null)]).then(([d, lists, as, pv, map, dg, med]) => {
+  DG = dg; MED = med && med[TASK_KEY] ? med : null; if (dg) for (const id of ["why", "checks", "interact"]) d3.select("#" + id).attr("hidden", null);
   D = d; prompts = d.prompts; TEMPLATES = lists ? lists.BABA_TEMPLATES : null;
   D.map = map; if (map) d3.select("#map").attr("hidden", null);
   // attention at six positions (and value-weighted) comes from attention_patterns.py; same prompts, same order
@@ -1858,7 +1904,8 @@ Promise.all([d3.json(TASK.dataUrl), TASK.listsUrl ? d3.json(TASK.listsUrl) : Pro
   const fromURL = readURL();
   if (Object.keys(fromURL).length) applyState(fromURL); else render();
   if (location.hash.length > 1) { const el = document.getElementById(location.hash.slice(1)); if (el) requestAnimationFrame(() => el.scrollIntoView({ block: "start" })); }   // the cards exist only after the data loads, so the browser's own jump to #card comes too early
-  addEventListener("resize", () => { drawScatter(); drawChecks(); drawInteract(); drawAttention(); drawMap(); drawRefs(); drawGroups(); drawTemplates(); });
+  let resizeTimer = null;    // redraw after the layout has settled (a phone turned sideways, a window resized), not on every resize event
+  addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { drawScatter(); drawChecks(); drawInteract(); drawAttention(); drawMap(); drawRefs(); drawGroups(); drawTemplates(); drawPrompts(); }, 150); });
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
 }).catch(e => d3.select("#err").text(`Could not load ${TASK.dataUrl}. Serve the repo root with "python3 -m http.server" and open /frontend/. (${e})`));
 </script>
