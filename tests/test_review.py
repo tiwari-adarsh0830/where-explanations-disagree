@@ -68,6 +68,26 @@ with sync_playwright() as p:
         ok8 = over == 0 and len(wraps) == 3 and any(wraps) and not title_scrolls and hint; bad += not ok8
         print(f"phone {url or 'ioi'}: overflow {over}, table wrappers {len(wraps)} (scrolling {sum(wraps)}), title outside wrapper {not title_scrolls}, swipe hint {hint} -> {'ok' if ok8 else 'PROBLEM'}")
         pg.close()
+    # 9. second review: toolbar height, sticky row names, tour can be collapsed, step 7 shows the outlined cell,
+    #    one threshold story, the 2x note near the top, intro quotes the test that earns the verdict, no nested brackets
+    pg = page(b, "?task=gt&head=9.1", 1126, 755)
+    tbh = pg.evaluate("document.querySelector('.controls').offsetHeight")
+    why = pg.inner_text("#whybody"); intro = pg.inner_text("#introfind")
+    ok9 = tbh <= 100 and "above 0.5 breaks" in why and "only because the ranks are more than 2× apart" in why and "Fisher p = 0.078" in intro and "((" not in intro and "))" not in intro and "IOI" not in pg.inner_text("#interact .hint")
+    bad += not ok9; print(f"second review (GT): toolbar {tbh}px, wording -> {'ok' if ok9 else 'PROBLEM'}")
+    pg.close()
+    pg = page(b, "", 390, 844)
+    sticky = pg.evaluate("getComputedStyle(document.querySelector('#medtbl tr > th:first-child')).position")
+    ok10 = sticky == "sticky"; bad += not ok10; print("sticky row names on phone:", sticky)
+    pg.close()
+    pg = page(b, "", 1126, 755)
+    pg.evaluate("showTour(6)"); pg.wait_for_timeout(1200)
+    r = pg.evaluate("(() => { const e = document.getElementById('intlargest').getBoundingClientRect(), t = document.getElementById('tour').getBoundingClientRect(); return [e.top, e.bottom, innerHeight, t.top]; })()")
+    pg.click("#tmin"); pg.wait_for_timeout(200)
+    hidden = pg.evaluate("getComputedStyle(document.getElementById('ttext')).display === 'none'")
+    ok11 = 0 <= r[0] and r[1] <= r[2] and hidden; bad += not ok11
+    print(f"tour step 7: outlined cell in view {0 <= r[0] and r[1] <= r[2]}, text can be hidden {hidden} -> {'ok' if ok11 else 'PROBLEM'}")
+    pg.close()
     b.close()
 print(f"mismatches: {bad}")
 print("console errors:", errs)

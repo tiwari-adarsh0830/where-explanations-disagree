@@ -33,8 +33,8 @@ with sync_playwright() as p:
                 sh = V["split_half"]; bad += sh is not None and cells[row][hdr.index("split-half")] != f"same direction {sh['misranked_break_more']}/{sh['tests']}, p < 0.1 in {sh['p_below_0.1']}"
         intro = [t for t in pg.eval_on_selector_all("#introfind li", "l => l.map(x => x.innerText)") if "checkable" in t][0]
         if "gt" not in url:
-            bad += "Checks that separate right from wrong: for attribution patching" not in intro
-            bad += "Pointing the right way, but weakly: for final-token attention" not in intro
+            bad += "Checks that separate right from wrong: attribution patching" not in intro
+            bad += "Pointing the right way, but weakly: final-token attention" not in intro
         else:
             bad += "Checks that separate" in intro
         print("   corrected p column and intro:", "ok" if not bad else f"{bad} problem(s)")
