@@ -154,6 +154,10 @@ The page shows this comparison as a table under the contrast table on the assump
 
 How our results sit against these: each single diagnostic we run has precedent (attribution patching's nonlinearity, interaction effects in patching, DLA missing indirect and compensated effects, and the general point that agreement between methods is not evidence of faithfulness). What we add is narrower: for each method, on the heads where it agrees with patching, we test with an independent intervention whether the assumption it relies on holds there, and compare those heads with the ones it misranks. We also put all of it in one tool.
 
+## License
+
+Our code (pipeline, page, tests) and results are under the MIT License, see `LICENSE`. Files we did not write keep their own terms: the IOI lists (MIT) and the greater-than nouns are described in `data/NOTICE.md`, and `tests/d3.min.js` is d3 (ISC License, text in `tests/LICENSE-d3.txt`). The page itself loads d3 from a CDN.
+
 ## AI use
 
 Following the course AI policy: the scripts in `pipeline/` and the D3 page in `frontend/` were written with help from Claude (an AI assistant). We run everything ourselves and check the numbers against each other. We'll keep this section updated as the project goes.
