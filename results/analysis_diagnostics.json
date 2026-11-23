@@ -340,16 +340,16 @@
       "violation": 0.944
      },
      {
-      "head": "9.9",
-      "rank_method": 7,
-      "rank_patching": 14,
-      "violation": 0.227
-     },
-     {
       "head": "8.6",
       "rank_method": 1,
       "rank_patching": 2,
       "violation": 0.165
+     },
+     {
+      "head": "9.9",
+      "rank_method": 7,
+      "rank_patching": 14,
+      "violation": 0.227
      },
      {
       "head": "10.7",
@@ -893,15 +893,15 @@
       "violation": 0.985
      },
      {
-      "head": "9.1",
-      "rank_method": 3,
-      "rank_patching": 1,
-      "violation": 0.001
-     },
-     {
       "head": "8.11",
       "rank_method": 9,
       "rank_patching": 3,
+      "violation": 0.001
+     },
+     {
+      "head": "9.1",
+      "rank_method": 3,
+      "rank_patching": 1,
       "violation": 0.001
      },
      {

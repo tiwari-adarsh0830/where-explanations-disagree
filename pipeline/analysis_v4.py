@@ -105,7 +105,7 @@ out["attr_patching_deviation"] = {
                 for r, hs in roles.items()},
     "top10_abs_dev": [{"head": lab(i), "role": role_of.get(i, "other"), "attr": round(float(Am[i]), 3), "patching": round(float(T[i]), 3),
                        "share_prompts_attr_below_patching": round(float((attr[:, i] < truth[:, i]).mean()), 2)}
-                      for i in np.argsort(-np.abs(dev))[:10]],
+                      for i in np.argsort(-np.abs(dev), kind="stable")[:10]],
     "sum_single_head_patching": round(float(T.sum()), 3), "sum_attr_patching": round(float(Am.sum()), 3),
     "clean_logit_diff": round(float(ldiff.mean()), 3),
 }

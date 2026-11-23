@@ -157,7 +157,7 @@ def analyse(task):
     top10 = {}
     for vk, meth in METHOD_OF.items():
         g, rel = disagreement(m, meth)
-        order = [i for i in np.argsort(-g) if rel[i] and g[i] >= 1][:10]     # at least a factor of 2 apart in rank
+        order = [i for i in np.argsort(-g, kind="stable") if rel[i] and g[i] >= 1][:10]     # at least a factor of 2 apart in rank
         rm, rr = ranks(m[meth]), ranks(m["full"])
         top10[meth] = {"assumption": vk, "n_with_violation_over_0.5": int(sum((v[vk][i] > 0.5) for i in order if v[vk][i] == v[vk][i])),
                        "n_checked": int(sum(v[vk][i] == v[vk][i] for i in order)),

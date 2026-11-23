@@ -40,9 +40,9 @@ role_of = {i: r for r, hs in roles.items() for i in hs}
 
 def rho(score, ref): return float(spearmanr(np.abs(score), np.abs(ref)).correlation)
 def top10(score, ref):
-    return len(set(np.argsort(-np.abs(ref))[:10]) & set(np.argsort(-np.abs(score))[:10]))
+    return len(set(np.argsort(-np.abs(ref), kind="stable")[:10]) & set(np.argsort(-np.abs(score), kind="stable")[:10]))
 def ranks(score):
-    r = np.empty(144, int); r[np.argsort(-np.abs(score))] = np.arange(1, 145); return r
+    r = np.empty(144, int); r[np.argsort(-np.abs(score), kind="stable")] = np.arange(1, 145); return r
 
 out = {"n_prompts": N, "bootstrap_reps": B}
 
@@ -92,7 +92,7 @@ out["attr_patching_deviation"] = {
     "top10_abs_dev": [{"head": lab(i), "role": role_of.get(i, "other"), "attr": round(float(Am[i]), 3),
                        "patching": round(float(T[i]), 3),
                        "share_prompts_attr_below_patching": round(float((attr[:, i] < truth[:, i]).mean()), 2)}
-                      for i in np.argsort(-np.abs(dev))[:10]],
+                      for i in np.argsort(-np.abs(dev), kind="stable")[:10]],
     "sum_single_head_patching": round(float(T.sum()), 3),
     "sum_attr_patching": round(float(Am.sum()), 3),
     "clean_logit_diff": round(float(ldiff.mean()), 3),

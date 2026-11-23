@@ -938,15 +938,15 @@
       "violation": 0.42
      },
      {
-      "head": "14.14",
-      "rank_method": 3,
-      "rank_patching": 1,
-      "violation": 0.002
-     },
-     {
       "head": "9.9",
       "rank_method": 6,
       "rank_patching": 2,
+      "violation": 0.002
+     },
+     {
+      "head": "14.14",
+      "rank_method": 3,
+      "rank_patching": 1,
       "violation": 0.002
      }
     ]
@@ -1389,6 +1389,10 @@
     "median_counts": "5/13 vs 1/19"
    }
   }
+ },
+ "holm_padding": {
+  "planned_8": 0,
+  "all_10": 0
  },
  "multiple_testing": [
   {

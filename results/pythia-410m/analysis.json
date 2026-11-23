@@ -355,16 +355,16 @@
       "violation": 0.389
      },
      {
-      "head": "19.15",
-      "rank_method": 1,
-      "rank_patching": 2,
-      "violation": 0.044
-     },
-     {
       "head": "11.4",
       "rank_method": 2,
       "rank_patching": 1,
       "violation": 0.194
+     },
+     {
+      "head": "19.15",
+      "rank_method": 1,
+      "rank_patching": 2,
+      "violation": 0.044
      }
     ]
    },

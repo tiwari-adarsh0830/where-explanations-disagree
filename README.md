@@ -9,9 +9,9 @@ Team 7: Sheetal Sood and Adarsh Tiwari.
 
 Explanation methods for language models don't always agree. Attention maps, logit attribution and gradient methods can point at different attention heads for the same prediction. We want to build a visual analytics tool that shows where they disagree, and use activation patching (knocking out a head or a group of heads and checking what happens to the output) as a check on which explanation holds up.
 
-We're starting with GPT-2 small on the indirect object identification (IOI) task. Wang et al. (2023) already mapped the circuit GPT-2 uses for it, so we have something to compare against.
+We work on GPT-2 small with two tasks whose circuits are already mapped: indirect object identification (IOI; Wang et al., 2023) and greater-than (Hanna et al., 2023), so we have something to compare against. The main checks were then repeated on GPT-2 medium (both tasks) and Pythia-410M (IOI), with every rule fixed before those runs.
 
-**Status:** in progress. The proposal was approved in October and the project update went in on Nov 3. Pipeline v3 and the analysis are done, we've rerun patching under five different settings, the second task (greater-than) is in, and we added assumption checks that test why a method disagrees with patching. The D3 tool covers all of it and switches between the two tasks.
+**Status:** the tool and the analysis are done; the presentation is Dec 8 and the paper is due Dec 14. The proposal was approved in October and the project update went in on Nov 3. Since then: patching under five settings, the greater-than task, depth baselines, five assumption checks that test why a method disagrees with patching, validity checks (split-half, multiple testing, an independent re-computation), and the same checks on GPT-2 medium and Pythia-410M. The D3 tool covers all of it and switches between the two tasks.
 
 ## What's in here
 
@@ -25,7 +25,7 @@ We're starting with GPT-2 small on the indirect object identification (IOI) task
 | `docs/` | Links to our planning docs |
 | `index.html`, `.nojekyll` | Let GitHub Pages serve the repo as the live tool: the root page forwards to `frontend/` |
 
-In `pipeline/`, `ioi_check_v3.py` is the current pipeline. It's the same as v2 (120 prompts from the paper's templates) but it keeps every prompt's scores, labels each prompt with its template and name order, and records attention at five query/key positions instead of one. `analysis_v4.py` reads that output plus `attn_scores.json` and produces every number the D3 page and the paper use: agreement with patching for each method with bootstrap intervals, attention at six positions (raw and value-weighted), the attribution patching error analysis, the group knockouts, and the per-order and per-template breakdowns. `patching_variants.py` reruns single-head patching and the group knockouts under five settings (noising vs denoising, three kinds of corruption, all positions vs the final token only) on the same 120 prompts, and `analysis_variants.py` compares them. `analysis_v3.py` is the earlier version behind our Nov 3 update (attention at five positions). `archive/ioi_check_v2.py` produced the numbers in our proposal and `archive/ioi_smoke_test_v1.py` was our first rough try. We kept both for reference.
+In `pipeline/`, `ioi_check_v3.py` is the current pipeline. It's the same as v2 (120 prompts from the paper's templates) but it keeps every prompt's scores, labels each prompt with its template and name order, and records attention at five query/key positions instead of one. `analysis_v4.py` reads that output plus `attn_scores.json` and produces the core agreement numbers: agreement with patching for each method with bootstrap intervals, attention at six positions (raw and value-weighted), the attribution patching error analysis, the group knockouts, and the per-order and per-template breakdowns. `patching_variants.py` reruns single-head patching and the group knockouts under five settings (noising vs denoising, three kinds of corruption, all positions vs the final token only) on the same 120 prompts, and `analysis_variants.py` compares them. `analysis_v3.py` is the earlier version behind our Nov 3 update (attention at five positions). `archive/ioi_check_v2.py` produced the numbers in our proposal and `archive/ioi_smoke_test_v1.py` was our first rough try. We kept both for reference.
 
 ## Setup
 
@@ -37,7 +37,7 @@ pip install -r requirements.txt
 
 On Linux, install the CPU build of torch first (`pip install torch==2.15.0 --index-url https://download.pytorch.org/whl/cpu`), or pip pulls the much larger CUDA build.
 
-TransformerLens 4.x removed `HookedTransformer`, which the IOI code and most tutorials use, so it has to stay on 3.x. `requirements.txt` pins the exact versions behind the committed results (torch 2.15.0, TransformerLens 3.9.0, transformers 5.22.1, numpy 2.5.4, scipy 1.18.1). Checked Nov 22 from a fresh clone in a fresh environment: every analysis script reproduces the committed result files exactly, `diagnostics.py` reproduces its numbers exactly on a test group, and `attention_patterns.py` matches to the saved rounding.
+TransformerLens 4.x removed `HookedTransformer`, which the IOI code and most tutorials use, so it has to stay on 3.x. `requirements.txt` pins the exact versions behind the committed results (torch 2.15.0, TransformerLens 3.9.0, transformers 5.22.1, numpy 2.5.4, scipy 1.18.1). Checked Nov 22 from a fresh clone in a fresh environment: every analysis script reproduces the committed result files exactly, `diagnostics.py` reproduces its numbers exactly on a test group, and `attention_patterns.py` matches to the saved rounding. Checked again Nov 23 on a different processor (Intel instead of the MacBook's ARM): numpy's default sort orders tied values differently there, which swapped two tied entries in a few top-10 lists (no count, p-value or verdict changed), so every analysis sort is now stable and the result files were regenerated with it; all of them, including the GPT-2 medium and Pythia analyses, now come out identical on both.
 
 ## Running it
 
@@ -58,7 +58,7 @@ python pipeline/analysis_validity.py results      # after analysis_diagnostics.p
 python pipeline/check_interventions.py
 # another model size (all scores and checks in one script; checked against GPT-2 small first)
 python pipeline/model_check.py gpt2-small /tmp/mc_small both 2 && python pipeline/check_model_check.py /tmp/mc_small results --analysis
-python pipeline/model_check.py gpt2-medium results/gpt2-medium ioi
+python pipeline/model_check.py gpt2-medium results/gpt2-medium
 python pipeline/analysis_model.py results/gpt2-medium
 python pipeline/model_check.py pythia-410m results/pythia-410m ioi && python pipeline/analysis_model.py results/pythia-410m
 ```
@@ -69,7 +69,7 @@ GPT-2 small downloads from Hugging Face the first time. The pipeline takes about
 
 To reproduce a figure: open the page (live link above, or `python3 -m http.server` from the repo root and `/frontend/`), set the view (the address bar keeps the head, method, patching setting and filters), and press **Save SVG** on the card. Each file records the link it came from in its `<desc>` element. For a PDF, `pip install cairosvg` and `cairosvg figure.svg -o figure.pdf`.
 
-To check the page itself: `pip install playwright && python -m playwright install chromium`, then `bash tests/run_all.sh` from the repo root. It serves the repo locally, loads every view in a headless browser for both tasks, compares numbers on the page with the result files, and checks for script errors, sideways overflow on a phone-width screen, keyboard selection, shareable links, the guided tour, the SVG export of every card, the GPT-2 small vs medium table (every cell recomputed from the result files), and the fixes from a full review of the page (link targets clear the toolbar, Unpin keeps the view, each wide table scrolls on its own on a phone). With `cd tests && npm i axe-core@4` it also runs an automated WCAG AA audit.
+To check the page itself: `pip install playwright && python -m playwright install chromium`, then `bash tests/run_all.sh` from the repo root. It serves the repo locally, loads every view in a headless browser for both tasks, compares numbers on the page with the result files, and checks for script errors, sideways overflow on a phone-width screen, keyboard selection, shareable links, the guided tour, the SVG export of every card, the three-model table (every cell recomputed from the result files), and the fixes from a full review of the page (link targets clear the toolbar, Unpin keeps the view, each wide table scrolls on its own on a phone). With `cd tests && npm i axe-core@4` it also runs an automated WCAG AA audit.
 
 ## First results (one run, so preliminary)
 

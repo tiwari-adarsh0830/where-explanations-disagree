@@ -56,8 +56,8 @@ roles = {r: [idx(s) for s in hs] for r, hs in d3["roles"].items()}
 roles["previous_token"] = [idx("2.2"), idx("4.11")]
 role_of = {i: r for r, hs in roles.items() for i in hs}
 def rho(a, b): return float(spearmanr(np.abs(a), np.abs(b)).correlation)
-def top10(a, b): return len(set(np.argsort(-np.abs(a))[:10]) & set(np.argsort(-np.abs(b))[:10]))
-def ranks(x): r = np.empty(144, int); r[np.argsort(-np.abs(x))] = np.arange(1, 145); return r
+def top10(a, b): return len(set(np.argsort(-np.abs(a), kind="stable")[:10]) & set(np.argsort(-np.abs(b), kind="stable")[:10]))
+def ranks(x): r = np.empty(144, int); r[np.argsort(-np.abs(x), kind="stable")] = np.arange(1, 145); return r
 def ci(vals): lo, hi = np.percentile(vals, [2.5, 97.5]); return [round(float(lo), 3), round(float(hi), 3)]
 def sel_of(c): return np.arange(N) if c == "pooled" else np.where(order == c)[0]
 
@@ -75,7 +75,7 @@ for a in VARIANTS:
         pair[f"{a} vs {b}"] = {"spearman": round(rho(M[a], M[b]), 3), "spearman_ci95": ci(bs), "top10_overlap": top10(M[a], M[b])}
 out["variant_agreement"] = pair
 out["top10_by_variant"] = {v: [{"head": lab(i), "role": role_of.get(i, "other"), "score": round(float(M[v][i]), 3)}
-                               for i in np.argsort(-np.abs(M[v]))[:10]] for v in VARIANTS}
+                               for i in np.argsort(-np.abs(M[v]), kind="stable")[:10]] for v in VARIANTS}
 
 # ---------- 2. each method against each setting ----------
 mv = {}

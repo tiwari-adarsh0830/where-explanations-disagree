@@ -40,8 +40,8 @@ METHODS = {
 def lab(i): return f"{i // H}.{i % H}"
 def idx(s): l, h = map(int, s.split(".")); return l * H + h
 def rho(a, b): return float(spearmanr(np.abs(a), np.abs(b)).correlation)
-def top10(a, b): return len(set(np.argsort(-np.abs(a))[:10]) & set(np.argsort(-np.abs(b))[:10]))
-def ranks(x): r = np.empty(144, int); r[np.argsort(-np.abs(x))] = np.arange(1, 145); return r
+def top10(a, b): return len(set(np.argsort(-np.abs(a), kind="stable")[:10]) & set(np.argsort(-np.abs(b), kind="stable")[:10]))
+def ranks(x): r = np.empty(144, int); r[np.argsort(-np.abs(x), kind="stable")] = np.arange(1, 145); return r
 def ci(v): lo, hi = np.percentile(v, [2.5, 97.5]); return [round(float(lo), 3), round(float(hi), 3)]
 circuit = [idx(h) for hs in d["roles"].values() for h in hs]
 ALL = np.arange(N); boots = [rng.integers(0, N, N) for _ in range(B)]
@@ -68,7 +68,7 @@ R = {k: ranks(v) for k, v in scores.items()}
 out["circuit_head_ranks"] = {lab(i): {k: int(R[k][i]) for k in R} for i in circuit}
 out["circuit_heads_in_top10"] = {k: int(sum(R[k][i] <= 10 for i in circuit)) for k in R}
 out["top10_by_setting"] = {v: [{"head": lab(i), "circuit": i in circuit, "score": round(float(S[v].mean(0)[i]), 4)}
-                               for i in np.argsort(-np.abs(S[v].mean(0)))[:10]] for v in S}
+                               for i in np.argsort(-np.abs(S[v].mean(0)), kind="stable")[:10]] for v in S}
 out["dla_sign_of_circuit_heads"] = {lab(i): round(float(dla[:, i].mean()), 3) for i in circuit}
 # 4
 early, late = [idx(h) for h in d["roles"]["yy_heads_early"]], [idx(h) for h in d["roles"]["yy_heads_late"]]

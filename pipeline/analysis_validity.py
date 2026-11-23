@@ -106,7 +106,7 @@ for task in ("ioi", "gt"):
         print(f"{vk:20s}" + "".join(f"{out[task]['matching_cross_half_median'][vk][c]:>8.2f} | {out[task]['matching_same_half_median'][vk][c]:<5.2f}" for c in cols))
 from scipy.stats import mannwhitneyu
 def holm(ps):
-    order = np.argsort(ps); k = len(ps); adj = np.empty(k); run = 0.0
+    order = np.argsort(ps, kind="stable"); k = len(ps); adj = np.empty(k); run = 0.0
     for r, i in enumerate(order): run = max(run, min(1.0, (k - r) * ps[i])); adj[i] = run
     return adj
 tests = []

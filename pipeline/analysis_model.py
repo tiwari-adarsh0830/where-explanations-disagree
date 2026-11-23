@@ -59,7 +59,7 @@ for task in files:
     res["metric_clean_mean"] = round(float(np.mean([p["metric_clean"] for p in P])), 4)
     res["metric_corrupt_mean"] = round(float(np.mean([p["metric_corrupt"] for p in P])), 4)
     F = np.mean([p["full"] for p in P], 0)
-    res["top10_patching"] = [f"{i // H}.{i % H}" for i in np.argsort(-np.abs(F))[:10]]
+    res["top10_patching"] = [f"{i // H}.{i % H}" for i in np.argsort(-np.abs(F), kind="stable")[:10]]
     out[task] = res
 
 # split-half, exactly as analysis_validity.py part 1 (IOI split by base template, greater-than by random halves)
