@@ -15,14 +15,16 @@ METHOD = {"position": "attn_end", "target": "attn_end", "direct": "dla", "linear
 def pf(p): return "–" if p is None else "p < 0.001" if p < 0.001 else f"p = {p:.{3 if p < 0.1 else 2}f}"
 def cnt(c):
     if not c: return "–"
-    return f"{c['broken_where_disagree']} of {c['n_disagree']} vs {c['broken_where_agree']} of {c['n_agree']}" if c["n_disagree"] else f"none misranked ({c['broken_where_agree']} of {c['n_agree']} right)"
+    return f"{c['broken_where_disagree']} of {c['n_disagree']} vs {c['broken_where_agree']} of {c['n_agree']}" if c["n_disagree"] else f"none misranked; {c['broken_where_agree']} of {c['n_agree']} right break"
 def verdict(c, holm):
     if not c or not c["n_disagree"] or not c["n_agree"]: return ("untestable", "no head misranked" if c and not c["n_disagree"] else "not testable")
     m = min(c["n_disagree"], c["n_agree"])
     few = f" (only {m} {'misranked' if c['n_disagree'] < c['n_agree'] else 'right'} heads)" if m < 5 else ""
-    if c["broken_where_agree"] / c["n_agree"] >= 0.5: return ("everywhere", "breaks almost everywhere")
-    if holm is not None and holm < 0.05 and c["fisher_p_one_sided"] is not None and c["fisher_p_one_sided"] < 0.05: return ("separates", "separates right from wrong" + few)
-    if c["broken_where_disagree"] / c["n_disagree"] > c["broken_where_agree"] / c["n_agree"]: return ("direction", "points the right way, weakly" + few)
+    fp = c["fisher_p_one_sided"]; up = c["broken_where_disagree"] / c["n_disagree"] > c["broken_where_agree"] / c["n_agree"]
+    if c["broken_where_agree"] / c["n_agree"] >= 0.5: return ("everywhere", "breaks even where it agrees")
+    if holm is not None and holm < 0.05 and fp is not None and fp < 0.05: return ("separates", "separates right from wrong" + few)
+    if up and ((holm is not None and holm < 0.1) or (fp is not None and fp < 0.1)): return ("direction", "points the right way" + few)
+    if up: return ("leans", "leans the right way (no test below 0.1)" + few)
     return ("none", "does not separate")
 def med_holm(task, v):
     t = next((x for x in MED["multiple_testing"] if x["task"] == task and x["check"] == v), None)
@@ -43,18 +45,20 @@ with sync_playwright() as p:
             cs = S["contrast"].get(v) or S["contrast"].get(METHOD[v]); cm = MED[task]["contrast"].get(v)
             hs = cs.get("validity", {}).get("holm_p") if cs else None; hm = med_holm(task, v)
             vs, vm = verdict(cs, hs), verdict(cm, hm)
-            want = [cnt(cs), pf(hs), vs[1], cnt(cm), pf(hm), vm[1]]
+            fs = cs["fisher_p_one_sided"] if cs else None; fm = cm["fisher_p_one_sided"] if cm else None
+            want = [cnt(cs), pf(fs), pf(hs), vs[1], cnt(cm), pf(fm), pf(hm), ("changed: " if vs[0] != vm[0] else "") + vm[1]]
             got = rows.get(v)
             if got != want: bad += 1; print(f"   {task} {v}: page {got} vs expected {want}")
             if vs[0] != vm[0]: changed.append(v)
-        outlined = pg.eval_on_selector_all("#medtbl tr[data-check]", "rs => rs.filter(r => r.children[6].classList.contains('diag')).map(r => r.dataset.check)")
+        outlined = pg.eval_on_selector_all("#medtbl tr[data-check]", "rs => rs.filter(r => r.children[8].classList.contains('chg')).map(r => r.dataset.check)")
         bad += sorted(outlined) != sorted(changed)
         intro = [t for t in pg.eval_on_selector_all("#introfind li", "l => l.map(x => x.innerText)") if t.startswith("A second model")]
         bad += not intro
         if intro:
             bad += ("no check changes its verdict" in intro[0]) != (not changed)
             bad += intro[0].startswith("A second model changes part of this.") != bool(changed)
-            bad += "claim about GPT-2 small" not in intro[0]
+            bad += ("findings above describe GPT-2 small" in intro[0]) != bool(changed)
+            bad += ("hold for both sizes" in intro[0]) == bool(changed)
         pg.click("#introfind a[href='#medtitle']"); pg.wait_for_timeout(300)
         top = pg.evaluate("document.getElementById('medtitle').getBoundingClientRect().top")
         bad += not (-5 < top < 300)
