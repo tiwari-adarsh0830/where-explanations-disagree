@@ -1,6 +1,7 @@
 """Fixes from the Nov 22 page review: link targets clear the sticky toolbar, Unpin keeps the view in place, a cell click
 pins without clearing the head, the Why panel uses the statistics' 2x rule and says so, the tour shows top-10 overlap
 where its text talks about the top 10, one name per method, and each wide table scrolls on its own on a phone.
+Also the leftovers from the second review (section 10).
 """
 import os, sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _common import D3, CHROME, BASE
@@ -87,6 +88,20 @@ with sync_playwright() as p:
     hidden = pg.evaluate("getComputedStyle(document.getElementById('ttext')).display === 'none'")
     ok11 = 0 <= r[0] and r[1] <= r[2] and hidden; bad += not ok11
     print(f"tour step 7: outlined cell in view {0 <= r[0] and r[1] <= r[2]}, text can be hidden {hidden} -> {'ok' if ok11 else 'PROBLEM'}")
+    pg.close()
+    # 10. leftovers from the second review: one name for final-token attention in grid titles and Why rows,
+    #     the head status sits beside the box and follows the selection, tour step 3 clears the Why rows on a 1280 x 720 screen
+    pg = page(b, "?head=5.5", 1280, 720)
+    titles = pg.evaluate("[...document.querySelectorAll('#grids h3')].map(e => e.textContent)")
+    whyrows = pg.evaluate("[...document.querySelectorAll('#whybody td.m')].map(e => e.textContent)")
+    old = [t for t in titles + whyrows if "Attention, final" in t or "Attn (final" in t]
+    hs = pg.evaluate("(() => { const i = document.getElementById('headin').getBoundingClientRect(), s = document.getElementById('headstatus').getBoundingClientRect(); return [Math.abs(i.top + i.height / 2 - (s.top + s.height / 2)) < 6, s.left > i.right, document.getElementById('headstatus').innerText]; })()")
+    pg.evaluate("select(65)"); pg.wait_for_timeout(200); cleared = pg.inner_text("#headstatus") == ""
+    pg.evaluate("showTour(2)"); pg.wait_for_timeout(1300)
+    r = pg.evaluate("(() => { const rows = [...document.querySelectorAll('#whybody table.why tr')]; const last = rows[rows.length - 1].getBoundingClientRect(), first = rows[1].getBoundingClientRect(), t = document.getElementById('tour').getBoundingClientRect(); return [first.top, last.bottom, t.top]; })()")
+    ok12 = titles[0] == "Final-token attention to IO" and not old and any(w.startswith("Final-token attention") for w in whyrows) and hs[0] and hs[1] and hs[2] == "see why" and cleared and r[0] > 77 and r[1] <= r[2]
+    bad += not ok12
+    print(f"leftovers: grid title {titles[0]!r}, old names {old}, status beside box {hs[0] and hs[1]} ({hs[2]!r}), cleared on deselect {cleared}, tour step 3 rows end {r[1]:.0f} above box {r[2]:.0f} -> {'ok' if ok12 else 'PROBLEM'}")
     pg.close()
     b.close()
 print(f"mismatches: {bad}")

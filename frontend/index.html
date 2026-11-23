@@ -42,11 +42,11 @@ h1 { font-size: 22px; margin: 0 0 4px; font-weight: 650; }
 h2 { font-size: 15px; margin: 0 0 2px; font-weight: 600; }
 .sub { color: var(--ink-2); margin: 0 0 16px; max-width: 900px; }
 .hint { color: var(--muted); font-size: 12.5px; margin: 0 0 12px; }
-.card, #medtitle { scroll-margin-top: calc(var(--tbh, 84px) + 12px); }
+.card, #medtitle, #whybody { scroll-margin-top: calc(var(--tbh, 84px) + 12px); }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
 .controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; position: sticky; top: 0; z-index: 5;
   background: var(--page); padding: 10px 0 12px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
-@media (max-width: 600px), (max-height: 600px) { .controls { position: static; } .card, #medtitle { scroll-margin-top: 12px; } }   /* phones, and short screens such as a 720p projector at 150% zoom, where a pinned toolbar would cover a third of the view */
+@media (max-width: 600px), (max-height: 600px) { .controls { position: static; } .card, #medtitle, #whybody { scroll-margin-top: 12px; } }   /* phones, and short screens such as a 720p projector at 150% zoom, where a pinned toolbar would cover a third of the view */
 .ctl { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-2); }
 .controls select { max-width: 200px; }
 .ctl[hidden] { display: none; }
@@ -82,17 +82,22 @@ td.chg { font-weight: 700; color: var(--ink); }
 td.vd { min-width: 11em; }
 body.touring { padding-bottom: 240px; }   /* room to scroll content above the tour box */
 #tour.min p, #tour.min #tback, #tour.min #tnext { display: none; }
-#headstatus { font-size: 12px; color: var(--muted); margin-left: 6px; }
+.headrow { display: flex; align-items: center; gap: 6px; }
+#headstatus { font-size: 12px; color: var(--muted); white-space: nowrap; }
+#headstatus:empty { display: none; }
 .vgrid h3 { font-size: 12.5px; margin: 0 0 2px; color: var(--ink); font-weight: 600; }
 .vgrid p { font-size: 11.5px; color: var(--muted); margin: 0 0 4px; max-width: 290px; }
 table.match { border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
 table.match th, table.match td { padding: 3px 8px; text-align: right; border-bottom: 1px solid var(--border); }
 table.match th { color: var(--muted); font-weight: 500; }
-#tour { position: fixed; right: 16px; bottom: 16px; width: min(380px, calc(100vw - 32px)); background: var(--surface); border: 1.5px solid var(--ink); border-radius: 10px; padding: 12px 14px; z-index: 20; box-shadow: 0 6px 24px rgba(0,0,0,0.18); font-size: 13.5px; color: var(--ink-2); }
-#tour h3 { margin: 2px 0 6px; font-size: 14px; color: var(--ink); }
-#tour p { margin: 0 0 10px; }
-#tour .tstep { font-size: 11.5px; color: var(--muted); }
-#tour .tbtns { display: flex; gap: 6px; justify-content: flex-end; }
+#tour { position: fixed; right: 16px; bottom: 16px; width: min(380px, calc(100vw - 32px)); background: var(--surface); border: 1.5px solid var(--ink); border-radius: 10px; padding: 10px 14px; z-index: 20; box-shadow: 0 6px 24px rgba(0,0,0,0.18); font-size: 13.5px; color: var(--ink-2); }
+#tour { display: grid; grid-template-columns: auto 1fr; grid-template-areas: "step btns" "title title" "text text"; align-items: center; column-gap: 8px; }   /* buttons share the top row with the step count, so the box stays short and covers less of the page */
+#tour[hidden] { display: none; }
+#tour h3 { grid-area: title; margin: 6px 0 3px; font-size: 14px; color: var(--ink); }
+#tour p { grid-area: text; margin: 0; }
+#tour .tstep { grid-area: step; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+#tour .tbtns { grid-area: btns; display: flex; gap: 6px; justify-content: flex-end; }
+@media (min-width: 1100px) { #tour { width: 440px; } }
 details.intro { padding: 12px 16px; }
 details.intro > summary { cursor: pointer; font-size: 14px; }
 details.intro .muted { color: var(--muted); font-weight: 400; margin-left: 6px; font-size: 12.5px; }
@@ -104,7 +109,7 @@ details.intro .muted { color: var(--muted); font-weight: 400; margin-left: 6px; 
 .introgrid a { color: var(--link); }
 a { color: var(--link); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-#headin { font: inherit; font-size: 13px; padding: 3px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--ink); width: 64px; }
+#headin { font: inherit; font-size: 13px; padding: 3px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--ink); width: 56px; }
 #headin[aria-invalid="true"] { border-color: var(--div-neg); }
 svg[tabindex]:focus-visible, #headin:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 .introgrid .ex { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; background: var(--div-mid); padding: 2px 6px; border-radius: 4px; color: var(--ink); }
@@ -256,8 +261,7 @@ details summary { cursor: pointer; font-weight: 600; }
       <select id="stage"></select>
     </div>
     <div class="ctl"><label for="headin">Head</label>
-      <input id="headin" type="text" size="5" placeholder="e.g. 9.9" autocomplete="off" aria-describedby="headhelp">
-      <span id="headstatus" aria-live="polite"></span>
+      <span class="headrow"><input id="headin" type="text" size="5" placeholder="e.g. 9.9" autocomplete="off" aria-describedby="headhelp"><span id="headstatus"></span></span>
       <span id="headhelp" class="sr">Type layer.head and press Enter. In a grid, arrow keys move the selection and Escape clears it.</span>
     </div>
   </div>
@@ -453,7 +457,7 @@ const TASKS = {
     stageOptions: [["early", "Early: duplicate, previous token, induction"], ["middle", "Middle: S-inhibition"], ["late", "Late: name movers, negative, backup"]],
     extraRoles: { "2.2": "previous_token", "4.11": "previous_token" },   // Wang et al. 2023, not in the pipeline's role list
     pairName: { "end>io": "final → IO", "end>s1": "final → S1", "end>s2": "final → S2", "s2>s1": "S2 → S1", "s2>s1+1": "S2 → token after S1", "s1+1>s1": "token after S1 → S1" },
-    attnEnd: { name: "Attention, final token → IO", short: "Attn (final→IO)" }, endTarget: "IO",
+    attnEnd: { name: "Final-token attention to IO", short: "Final-token attention" }, endTarget: "IO",
     groups: [{ key: "name_movers", name: "Name movers", role: "name_movers" }, { key: "backups", name: "Backup name movers", role: "backup_nm" }],
     extraGroups: [],
     t5group: "name_movers", t5groupTitle: "Name-mover knockout effect", t5groupTitleDen: "Name movers restored",
@@ -486,7 +490,7 @@ const TASKS = {
     stageOptions: [["early", "Year heads, layers 5–7"], ["late", "Year heads, layers 8–9"]],
     extraRoles: {},
     pairName: { "end>yy": "final → YY", "end>xx1": "final → century", "end>noun": "final → noun", "yy>xx1": "YY → century", "yy>noun": "YY → noun" },
-    attnEnd: { name: "Attention, final token → YY", short: "Attn (final→YY)" }, endTarget: "YY",
+    attnEnd: { name: "Final-token attention to YY", short: "Final-token attention" }, endTarget: "YY",
     groups: [{ key: "early_heads", name: "Year heads, layers 5–7", role: "yy_heads_early" }, { key: "late_heads", name: "Year heads, layers 8–9", role: "yy_heads_late" }],
     extraGroups: [{ key: "mlps_8_11", name: "MLPs 8–11", sub: "4 MLP layers" }],
     t5group: "both", t5groupTitle: "Both head groups knocked out", t5groupTitleDen: "Both head groups restored",
@@ -1029,8 +1033,8 @@ function addNotes() {
 // ---------- assumption checks (pipeline/diagnostics.py, analysis_diagnostics.py) ----------
 let DG = null;
 const CHECKS = [
-  { v: "position", method: "attn_end", label: () => TASK.attnEnd.name, assume: () => "The head acts at the final token.", link: "attention", linkText: "see where it looks" },
-  { v: "target", method: "attn_end", label: () => TASK.attnEnd.name, assume: () => `What it reads at ${TASK.endTarget} carries its effect.`, link: "attention", linkText: "see where it looks" },
+  { v: "position", method: "attn_end", label: () => CHECK_NAME.attn_end, assume: () => "The head acts at the final token.", link: "attention", linkText: "see where it looks" },
+  { v: "target", method: "attn_end", label: () => CHECK_NAME.attn_end, assume: () => `What it reads at ${TASK.endTarget} carries its effect.`, link: "attention", linkText: "see where it looks" },
   { v: "direct", method: "dla", label: () => "Direct logit attribution", assume: () => "Its effect goes straight to the output.", link: "interact", linkText: "see which heads it interacts with" },
   { v: "linearity", method: "attr", label: () => "Attribution patching", assume: () => "Its effect grows in proportion to the change.", link: null },
   { v: "redundancy", method: "denoise", label: () => "Single-head patching", assume: () => "No other head changes its effect.", link: "interact", linkText: "see its partners" },
@@ -1148,7 +1152,7 @@ function drawChecks() {
   for (const c of activeChecks()) {
     const box = wrap.append("div").attr("class", "vgrid");
     box.append("h3").text(CHECK_TITLE[c.v]);
-    box.append("p").text(`Assumption of ${c.v === "direct" ? "DLA" : c.method === "attn_end" ? TASK.attnEnd.short : c.label().toLowerCase()}`);
+    box.append("p").text(`Assumption of ${c.v === "direct" ? "DLA" : c.label().toLowerCase()}`);
     const svg = box.append("svg").attr("width", PL + H * (C + G2)).attr("height", PT + L * (C + G2)).attr("role", "img").attr("aria-label", `Violation of: ${c.assume()}`);
     for (let h = 0; h < H; h += 2) svg.append("text").attr("x", PL + h * (C + G2) + C / 2).attr("y", 10).attr("text-anchor", "middle").style("font-size", "10px").text(h);
     for (let l = 0; l < L; l += 2) svg.append("text").attr("x", PL - 4).attr("y", PT + l * (C + G2) + C / 2 + 3).attr("text-anchor", "end").style("font-size", "10px").text(l);
@@ -1700,8 +1704,8 @@ function syncControls() {
 d3.select("#headin").on("keydown", function (ev) {
   if (ev.key !== "Enter") return;
   const i = headFromText(this.value); this.setAttribute("aria-invalid", i == null && this.value.trim() ? "true" : "false");
-  if (this.value.trim() === "") { state.sel = null; render(); d3.select("#headstatus").html(""); }
-  else if (i != null) { state.sel = i; render(); d3.select("#headstatus").html(`selected · <a href="#why">see why</a>`); }
+  if (this.value.trim() === "") { state.sel = null; render(); }
+  else if (i != null) { state.sel = i; render(); }
 });
 function applyState(st) {
   if (st.ref && REFS[st.ref] && prompts[0].var && st.ref !== state.ref) { state.ref = st.ref; for (const p of prompts) { p.truth = p.var[st.ref]; p.group_drop = p.vgroup[st.ref]; } refTexts(st.ref); }
@@ -1743,7 +1747,7 @@ const TOURS = {
   ioi: [
     { t: "Four methods, four answers", x: "Head 5.5 is the 3rd most important head by patching, but final-token attention ranks it 73rd and DLA 113th. Which one is right?", st: { sel: 65, ref: "noise_abc", cond: "all", method: "attn_end" }, go: "gridscard" },
     { t: "Where they disagree", x: "Heads far from the diagonal are disagreements. Read the line under the agreement number: layer number alone agrees with patching more than final-token attention does.", st: { sel: 65, method: "attn_end" }, go: "scattercard" },
-    { t: "Why: every assumption breaks for 5.5", x: "5.5 acts at the second name, not the final token; its effect goes through later heads, not straight to the output; it bends, so the gradient estimate misses it; and other heads change its effect. Each row is a separate experiment.", st: { sel: 65 }, go: "why" },
+    { t: "Why: every assumption breaks for 5.5", x: "5.5 acts at the second name, not the final token. Its effect goes through later heads, it bends so the gradient estimate misses it, and other heads change it. Each row is a separate experiment.", st: { sel: 65 }, go: "whybody" },
     { t: "It looks somewhere else", x: "From the second name, 5.5 attends to the token after the first name. The plain score only reads the final token, so it never sees this.", st: { sel: 65 }, go: "attention" },
     { t: "The yardstick moves", x: "Switched to denoising: now the reference asks whether a head is enough on its own. Final-token attention jumps from worst to decent, and DLA's top 10 matches patching's exactly (the matrix now shows top-10 overlap).", st: { ref: "denoise_abc", method: "attn_end", t6metric: "top" }, go: "refs" },
     { t: "A finding that depends on the yardstick", x: "Under the default setting, knocking out the name movers changes the answer in opposite directions for BABA and ABBA prompts. With the name-flip corruption shown here it hurts in both name orders, so that sign flip comes from the corruption, not the model.", st: { ref: "noise_flip", t6metric: "rho" }, go: "groups" },
@@ -1751,7 +1755,7 @@ const TOURS = {
   ],
   gt: [
     { t: "A different circuit", x: "Greater-than: GPT-2 should prefer end years after the start year. Head 5.1 is in the top 10 by patching, but DLA ranks it 85th.", st: { sel: 61, method: "dla" }, go: "gridscard" },
-    { t: "Why DLA misses 5.1", x: "Most of 5.1's effect goes through later components (Hanna et al. find MLPs 8 to 11 do the comparison), so its direct push on the answer is small.", st: { sel: 61 }, go: "why" },
+    { t: "Why DLA misses 5.1", x: "Most of 5.1's effect goes through later components (Hanna et al. find MLPs 8 to 11 do the comparison), so its direct push on the answer is small.", st: { sel: 61 }, go: "whybody" },
     { t: "Here plain attention works", x: "Every circuit head reads the start year from the final token, so final-token attention puts all seven of them in its top 10. The best-position trick that helped in IOI does not help here.", st: { sel: 61, method: "attn_end" }, go: "scattercard" },
     { t: "Heads are only part of the story", x: "Patching MLPs 8 to 11 as whole layers changes the answer about as much as all seven heads together.", st: {}, go: "groups" },
   ],
@@ -1879,7 +1883,9 @@ function addExportButtons() {
 function render() {
   if (state.cond !== lastCond) { if (state.cond !== "all") state.t3order = state.cond; lastCond = state.cond; }  // the global filter sets T3's order when it changes
   stats = byCond[state.cond]; drawIntro(); drawGrids(); drawScatter(); drawDetail(); drawWhy(); drawChecks(); drawInteract(); drawAttention(); drawMap(); drawRefs(); drawGroups(); drawTemplates(); drawPrompts(); drawTable(); writeURL();
-  const hi = document.getElementById("headin"); if (hi && document.activeElement !== hi) { hi.value = state.sel == null ? "" : lab(state.sel); hi.setAttribute("aria-invalid", "false"); } }
+  const hi = document.getElementById("headin"); if (hi && document.activeElement !== hi) { hi.value = state.sel == null ? "" : lab(state.sel); hi.setAttribute("aria-invalid", "false"); }
+  const hs = state.sel == null ? "" : `<a href="#why" aria-label="Why the methods agree or disagree about head ${lab(state.sel)}">see why</a>`;
+  const hsEl = document.getElementById("headstatus"); if (hsEl && hsEl.innerHTML !== hs) hsEl.innerHTML = hs; }   // next to the box whichever way the head was picked; cleared when nothing is selected
 
 const TEXTS = {
   gt: {
